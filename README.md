@@ -51,3 +51,7 @@ supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení pře
 - Přepojit `store.ts` na Supabase (schéma je v `supabase/migrations/0001_init.sql`) a přidat přihlášení učitelů.
 - Hosting v EU, RLS na všech tabulkách (připraveno ve schématu), audit log (triggery).
 - PDF teď vzniká přes tiskový dialog prohlížeče („Uložit jako PDF“). Pro jednotný výstup lze později generovat na serveru.
+
+## Licence
+
+MIT – viz soubor `LICENSE`.
