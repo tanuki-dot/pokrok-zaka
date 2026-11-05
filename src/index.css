@@ -6,12 +6,16 @@
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
 
+  /* Plochy a text */
   --color-canvas: #f3f6fb;
+  --color-surface: #ffffff;
+  --color-muted: #eef1f6;
   --color-line: #e3e9f2;
   --color-ink: #16213a;
   --color-ink-soft: #55627a;
   --color-ink-faint: #8a96ab;
 
+  /* Akcenty */
   --color-brand-50: #fff4ec;
   --color-brand-100: #ffe4d1;
   --color-brand-500: #ee7424;
@@ -24,12 +28,65 @@
   --color-sea-600: #2257cc;
   --color-sea-700: #1b45a3;
 
+  /* Stavy */
+  --color-good: #1b7a44;
+  --color-good-wash: #e6f5ec;
+  --color-warn: #86610a;
+  --color-warn-wash: #fdf3dc;
+  --color-bad: #a63a55;
+  --color-bad-wash: #fbe9ee;
+  --color-orange: #a2531b;
+  --color-orange-wash: #fdeee2;
+
   /* Úrovně 1–5: 1 = nejvyšší zvládnutí */
   --color-lv1: #1f9d55;
   --color-lv2: #6aa83a;
   --color-lv3: #d4a017;
   --color-lv4: #e07b2a;
   --color-lv5: #c8506a;
+}
+
+:root { color-scheme: light; }
+
+/* Tmavý motiv – jen na obrazovce, tisk zůstává vždy světlý. */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-canvas: #0e1320;
+    --color-surface: #161d2c;
+    --color-muted: #222b3d;
+    --color-line: #29334a;
+    --color-ink: #e7ecf5;
+    --color-ink-soft: #a9b4c9;
+    --color-ink-faint: #7c879e;
+
+    --color-brand-50: #2b1d13;
+    --color-brand-100: #4a2d17;
+    --color-brand-500: #ef7a2c;
+    --color-brand-600: #f59450;
+    --color-brand-700: #ffb57f;
+
+    --color-sea-50: #17233f;
+    --color-sea-100: #213462;
+    --color-sea-500: #477bf0;
+    --color-sea-600: #7ea4ff;
+    --color-sea-700: #a9c3ff;
+
+    --color-good: #5fcf8f;
+    --color-good-wash: #14291e;
+    --color-warn: #e8bd55;
+    --color-warn-wash: #2c2412;
+    --color-bad: #f08aa3;
+    --color-bad-wash: #34171f;
+    --color-orange: #f2a66a;
+    --color-orange-wash: #33220f;
+
+    --color-lv1: #27a862;
+    --color-lv2: #6fae3e;
+    --color-lv3: #c99a17;
+    --color-lv4: #df7d2e;
+    --color-lv5: #cf5873;
+  }
 }
 
 html, body, #root { height: 100%; }
@@ -49,7 +106,7 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; letter-spacin
 }
 
 @media print {
-  body { background: #fff; }
+  body { background: #fff; color: #16213a; }
   .no-print { display: none !important; }
   .print-sheet { box-shadow: none !important; border: 0 !important; margin: 0 !important; max-width: none !important; }
   @page { size: A4; margin: 18mm 16mm; }

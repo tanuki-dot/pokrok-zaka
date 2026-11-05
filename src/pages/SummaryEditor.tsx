@@ -94,7 +94,7 @@ export default function SummaryEditor() {
           </>
         }
       />
-      {note && <p role="status" className="mb-4 rounded-xl bg-[#e6f5ec] px-4 py-2.5 text-sm font-semibold text-[#1b7a44]">{note}</p>}
+      {note && <p role="status" className="mb-4 rounded-xl bg-good-wash px-4 py-2.5 text-sm font-semibold text-good">{note}</p>}
 
       <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
         <div className="flex min-w-0 flex-col gap-4">
@@ -120,7 +120,7 @@ export default function SummaryEditor() {
                           onChange={(e) => updateSection(sec.key, (x) => ({ ...x, sentences: x.sentences.map((y) => (y.id === s.id ? { ...y, text: e.target.value } : y)) }))}
                         />
                         <button
-                          className="mt-2 rounded-lg p-1.5 text-ink-faint hover:bg-[#fbe9ee] hover:text-[#a63a55]"
+                          className="mt-2 rounded-lg p-1.5 text-ink-faint hover:bg-bad-wash hover:text-bad"
                           aria-label="Odstranit větu"
                           onClick={() => updateSection(sec.key, (x) => ({ ...x, sentences: x.sentences.filter((y) => y.id !== s.id) }))}
                         >

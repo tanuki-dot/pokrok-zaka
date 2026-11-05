@@ -6,11 +6,12 @@ import { useCtx } from '../lib/useCtx'
 import { addDays, fmtShort, relative, today, weekStart } from '../lib/dates'
 import { Button, Card, Pill, PageHeader } from '../components/ui'
 import { fullName } from '../lib/util'
+import { TOOLTIP_STYLE } from '../components/chartStyle'
 
 function Stat({ icon, value, label, note, tone }: { icon: ReactNode; value: ReactNode; label: string; note?: ReactNode; tone: string }) {
   return (
     <Card className="flex items-center gap-4">
-      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-line" style={{ color: tone, background: `color-mix(in srgb, ${tone} 8%, white)` }}>
+      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-line" style={{ color: tone, background: `color-mix(in srgb, ${tone} 10%, var(--color-surface))` }}>
         {icon}
       </span>
       <div className="min-w-0">
@@ -95,7 +96,7 @@ export default function Dashboard() {
                 <CartesianGrid stroke="var(--color-line)" vertical={false} />
                 <XAxis dataKey="week" tickFormatter={(w: string) => fmtShort(w)} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
-                <Tooltip labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`} formatter={(v) => [v, 'Záznamy']} contentStyle={{ borderRadius: 12, border: '1px solid var(--color-line)', fontSize: 13 }} />
+                <Tooltip cursor={{ fill: 'var(--color-muted)' }} labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`} formatter={(v) => [v, 'Záznamy']} contentStyle={TOOLTIP_STYLE} />
                 <Bar dataKey="zaznamy" radius={[6, 6, 0, 0]} isAnimationActive={false}>
                   {activity.map((a) => (
                     <Cell key={a.week} fill={a.week === mon ? 'var(--color-brand-500)' : 'var(--color-sea-500)'} />

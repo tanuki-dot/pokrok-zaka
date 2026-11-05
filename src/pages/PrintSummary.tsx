@@ -24,7 +24,7 @@ export default function PrintSummary() {
         <span className="text-sm text-ink-soft">Náhled tisku. V dialogu tisku zvolte „Uložit jako PDF“.</span>
         <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Tisk / PDF</Button>
       </div>
-      <article className="print-sheet mx-auto max-w-[800px] rounded-2xl border border-line bg-white px-12 py-12 shadow-sm">
+      <article className="print-sheet mx-auto max-w-[800px] rounded-2xl border border-line bg-surface px-12 py-12 shadow-sm">
         <header className="border-b-2 border-ink pb-4">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">{school?.name} · {KIND_LABEL[sum.kind]} slovní hodnocení</div>
           <h1 className="mt-2 text-[30px] font-bold">{st?.firstName} {st?.lastName}</h1>

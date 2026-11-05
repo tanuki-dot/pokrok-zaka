@@ -228,7 +228,7 @@ export default function AssessmentForm() {
                           onClick={() => setScore(c.id, level)}
                           className={cx(
                             'tabular h-10 w-10 rounded-xl border text-[15px] font-bold transition-all',
-                            cur === level ? 'border-transparent text-white shadow-md' : 'border-line bg-white text-ink-soft hover:border-ink-faint',
+                            cur === level ? 'border-transparent text-white shadow-md' : 'border-line bg-surface text-ink-soft hover:border-ink-faint',
                           )}
                           style={cur === level ? { background: `var(--color-lv${level})` } : undefined}
                         >
@@ -241,7 +241,7 @@ export default function AssessmentForm() {
                 )
               })}
             </ul>
-            <p className="mt-3 rounded-xl bg-[#fdf3dc] px-3 py-2 text-sm text-[#7a5806]">
+            <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">
               <strong>Důležité:</strong> čísla vyjadřují aktuální zvládnutí dovednosti (1 = nejvyšší). Nejde automaticky o školní známky.
             </p>
           </Step>
@@ -335,7 +335,7 @@ export default function AssessmentForm() {
               <Button variant="brand" disabled={!canSave} onClick={() => save(false)}><Check size={17} /> Uložit hodnocení</Button>
               {!existing && <Button disabled={!canSave} onClick={() => save(true)}>Uložit a další žák</Button>}
               {!canSave && <span className="text-sm text-ink-faint">Pro uložení označte aspoň jednu dovednost.</span>}
-              {saved && <span role="status" className="text-sm font-semibold text-[#1b7a44]">Uloženo{existing ? '' : ' – pokračujte dalším žákem'}.</span>}
+              {saved && <span role="status" className="text-sm font-semibold text-good">Uloženo{existing ? '' : ' – pokračujte dalším žákem'}.</span>}
             </div>
           </Step>
         </div>

@@ -1,6 +1,7 @@
 import { CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { LEVELS, weeklyLevels, type Point } from '../lib/analysis'
 import { fmtShort } from '../lib/dates'
+import { TOOLTIP_STYLE } from './chartStyle'
 
 /**
  * Graf jedné dovednosti po týdnech. Škála je obrácená (1 = nejvyšší zvládnutí),
@@ -20,14 +21,14 @@ export function ProgressChart({ points, height = 220, color = 'var(--color-sea-5
           <Tooltip
             formatter={(v) => [`${v} – ${LEVELS[Number(v) - 1]?.text ?? ''}`, 'Úroveň']}
             labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`}
-            contentStyle={{ borderRadius: 12, border: '1px solid var(--color-line)', fontSize: 13 }}
+            contentStyle={TOOLTIP_STYLE}
           />
           <Line
             type="monotone"
             dataKey="level"
             stroke={color}
             strokeWidth={2.5}
-            dot={{ r: 4, fill: '#fff', stroke: color, strokeWidth: 2 }}
+            dot={{ r: 4, fill: 'var(--color-surface)', stroke: color, strokeWidth: 2 }}
             activeDot={{ r: 6 }}
             isAnimationActive={false}
           />

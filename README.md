@@ -14,6 +14,8 @@ npm run build      # produkční build do dist/
 
 Aplikace běží v **demo režimu**: obsahuje fiktivní třídy ZŠ (7.A) i SŠ (ME1) s ukázkovými záznamy za posledních 9 týdnů. Data se ukládají v prohlížeči (localStorage). Tlačítkem „Obnovit ukázková data“ vlevo dole se vrátí do výchozího stavu.
 
+Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a PDF jsou vždy světlé.
+
 ## Co aplikace umí (podle kroků v zadání)
 
 | Krok | Kde v aplikaci |

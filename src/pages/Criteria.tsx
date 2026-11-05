@@ -43,7 +43,7 @@ export default function CriteriaPage() {
                     onClick={() => toggleDefault(subj.id, c.id)}
                     className={cx('relative h-6 w-11 shrink-0 rounded-full transition-colors', on ? 'bg-sea-500' : 'bg-line')}
                   >
-                    <span className={cx('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', on ? 'left-[22px]' : 'left-0.5')} />
+                    <span className={cx('absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-all', on ? 'left-[22px]' : 'left-0.5')} />
                   </button>
                 </li>
               )
@@ -62,7 +62,7 @@ export default function CriteriaPage() {
                     <div className="font-semibold">{c.name} <Pill tone="brand" className="ml-1 align-middle">vlastní</Pill></div>
                     <div className="text-sm text-ink-faint">{c.question}</div>
                   </div>
-                  <button className="p-1.5 text-ink-faint hover:text-[#a63a55]" aria-label={`Smazat ${c.name}`} onClick={() => removeCriterion(c.id)}><Trash2 size={15} /></button>
+                  <button className="p-1.5 text-ink-faint hover:text-bad" aria-label={`Smazat ${c.name}`} onClick={() => removeCriterion(c.id)}><Trash2 size={15} /></button>
                 </li>
               ))}
             </ul>
@@ -97,7 +97,7 @@ export default function CriteriaPage() {
                   {db.phrases.filter((p) => p.kind === k).map((p) => (
                     <li key={p.id} className="flex items-start gap-2 rounded-lg border border-line px-3 py-1.5 text-sm">
                       <span className="flex-1">{p.text}</span>
-                      <button className="text-ink-faint hover:text-[#a63a55]" aria-label="Smazat větu" onClick={() => removePhrase(p.id)}><Trash2 size={14} /></button>
+                      <button className="text-ink-faint hover:text-bad" aria-label="Smazat větu" onClick={() => removePhrase(p.id)}><Trash2 size={14} /></button>
                     </li>
                   ))}
                 </ul>

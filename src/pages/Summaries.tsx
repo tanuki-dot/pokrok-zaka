@@ -104,7 +104,7 @@ export default function Summaries() {
             {withData.length > 0 && withData.length < targets.length && (
               <p className="text-xs text-ink-faint">Bez záznamu v období: {targets.filter((t) => !withData.includes(t)).map(fullName).join(', ')}.</p>
             )}
-            {msg && <p role="status" className="rounded-xl bg-[#e6f5ec] px-3 py-2 text-sm text-[#1b7a44]">{msg}</p>}
+            {msg && <p role="status" className="rounded-xl bg-good-wash px-3 py-2 text-sm text-good">{msg}</p>}
           </div>
         </Card>
 

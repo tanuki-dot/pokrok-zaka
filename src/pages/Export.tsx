@@ -42,7 +42,7 @@ export default function ExportPage() {
             <Button onClick={() => download(new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }), `pokrok-zaka-zaloha-${today()}.json`)}>
               <Database size={16} /> Stáhnout zálohu (.json)
             </Button>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-white px-3.5 py-2 text-sm font-semibold hover:border-sea-500 hover:text-sea-600">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold hover:border-sea-500 hover:text-sea-600">
               <Upload size={16} /> Obnovit ze zálohy
               <input
                 id="obnovit-zalohu"

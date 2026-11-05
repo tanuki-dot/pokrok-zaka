@@ -4,6 +4,7 @@ import { School } from 'lucide-react'
 import { useDB } from '../lib/store'
 import { addDays, fmtShort, inRange, periodFor, today, weekStart } from '../lib/dates'
 import { Card, PageHeader, Tabs } from '../components/ui'
+import { TOOLTIP_STYLE } from '../components/chartStyle'
 
 /*
  * KROK 10 – vedení školy vidí jen souhrnná čísla: zda učitelé dávají průběžnou
@@ -78,7 +79,7 @@ export default function Management() {
               <CartesianGrid stroke="var(--color-line)" vertical={false} />
               <XAxis dataKey="week" tickFormatter={(w: string) => fmtShort(w)} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
-              <Tooltip labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`} contentStyle={{ borderRadius: 12, border: '1px solid var(--color-line)', fontSize: 13 }} />
+              <Tooltip cursor={{ fill: 'var(--color-muted)' }} labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`} contentStyle={TOOLTIP_STYLE} />
               <Legend wrapperStyle={{ fontSize: 13 }} />
               <Bar dataKey="Záznamy se zpětnou vazbou" fill="var(--color-sea-500)" radius={[5, 5, 0, 0]} isAnimationActive={false} />
               <Bar dataKey="Stanovené cíle" fill="var(--color-brand-500)" radius={[5, 5, 0, 0]} isAnimationActive={false} />

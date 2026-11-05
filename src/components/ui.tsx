@@ -5,7 +5,7 @@ export const cx = (...xs: (string | false | null | undefined)[]) => xs.filter(Bo
 
 export function Card({ children, className, title, action }: { children: ReactNode; className?: string; title?: ReactNode; action?: ReactNode }) {
   return (
-    <section className={cx('rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(22,33,58,.04)]', className)}>
+    <section className={cx('rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(22,33,58,.04)]', className)}>
       {(title || action) && (
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           {title && <h2 className="text-[17px] font-bold">{title}</h2>}
@@ -23,8 +23,8 @@ export function Button({ variant = 'outline', className, ...rest }: ButtonHTMLAt
     primary: 'bg-sea-500 text-white hover:bg-sea-600 border-transparent',
     brand: 'bg-brand-500 text-white hover:bg-brand-600 border-transparent',
     ghost: 'bg-transparent text-ink-soft hover:bg-sea-50 hover:text-ink border-transparent',
-    outline: 'bg-white text-ink hover:border-sea-500 hover:text-sea-600 border-line',
-    danger: 'bg-white text-[#b0334d] hover:bg-[#fdf0f3] border-[#f1ccd5]',
+    outline: 'bg-surface text-ink hover:border-sea-500 hover:text-sea-600 border-line',
+    danger: 'bg-surface text-bad hover:bg-bad-wash border-bad/30',
   }
   return (
     <button
@@ -50,7 +50,7 @@ export function Field({ label, hint, children, className }: { label: string; hin
 }
 
 const inputCls =
-  'rounded-xl border border-line bg-white px-3 py-2 text-[15px] text-ink placeholder:text-ink-faint focus:border-sea-500 focus:outline-none focus:ring-2 focus:ring-sea-100'
+  'rounded-xl border border-line bg-surface px-3 py-2 text-[15px] text-ink placeholder:text-ink-faint focus:border-sea-500 focus:outline-none focus:ring-2 focus:ring-sea-100'
 
 const width = (c?: string) => (c && /(^|\s)(w-|min-w-|flex-1)/.test(c) ? '' : 'w-full')
 export const Input = (p: InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(inputCls, width(p.className), p.className)} />
@@ -63,10 +63,10 @@ export const Select = (p: SelectHTMLAttributes<HTMLSelectElement>) => (
 
 export function Pill({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' | 'sea' | 'brand'; className?: string }) {
   const tones = {
-    neutral: 'bg-[#eef1f6] text-ink-soft',
-    good: 'bg-[#e6f5ec] text-[#1b7a44]',
-    warn: 'bg-[#fdf3dc] text-[#946b07]',
-    bad: 'bg-[#fbe9ee] text-[#a63a55]',
+    neutral: 'bg-muted text-ink-soft',
+    good: 'bg-good-wash text-good',
+    warn: 'bg-warn-wash text-warn',
+    bad: 'bg-bad-wash text-bad',
     sea: 'bg-sea-50 text-sea-700',
     brand: 'bg-brand-50 text-brand-700',
   }
@@ -115,7 +115,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 
 export function Tabs<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-xl border border-line bg-white p-1">
+    <div role="tablist" className="inline-flex rounded-xl border border-line bg-surface p-1">
       {options.map((o) => (
         <button
           key={o.value}

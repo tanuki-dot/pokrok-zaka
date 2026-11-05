@@ -33,19 +33,19 @@ export default function SelfAssessmentPage() {
           <span className="font-display text-lg font-bold">Pokrok žáka · sebehodnocení</span>
         </div>
         {done ? (
-          <div className="rounded-2xl border border-line bg-white p-8 text-center">
+          <div className="rounded-2xl border border-line bg-surface p-8 text-center">
             <CheckCircle2 size={44} className="mx-auto text-lv1" />
             <h1 className="mt-3 text-2xl font-bold">Díky, odesláno</h1>
             <p className="mt-1 text-ink-soft">Učitel uvidí tvoje odpovědi vedle svého hodnocení. Další cíl si stanovíte spolu.</p>
           </div>
         ) : !a ? (
-          <div className="rounded-2xl border border-line bg-white p-8">
+          <div className="rounded-2xl border border-line bg-surface p-8">
             <h1 className="text-xl font-bold">Kód už neplatí</h1>
             <p className="mt-1 text-ink-soft">Kód „{code}“ neexistuje nebo už byl použit. Požádej učitele o nový odkaz.</p>
           </div>
         ) : (
           <form
-            className="rounded-2xl border border-line bg-white p-6 sm:p-8"
+            className="rounded-2xl border border-line bg-surface p-6 sm:p-8"
             onSubmit={(e) => {
               e.preventDefault()
               if (submitSelfAssessment(a.selfCode!, ans)) setDone(true)

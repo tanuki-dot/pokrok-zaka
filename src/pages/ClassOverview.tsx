@@ -53,7 +53,7 @@ export default function ClassOverview() {
           <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-ink-faint">
-                <th className="sticky left-0 z-10 border-b border-line bg-white py-2 pr-3 font-semibold">Žák</th>
+                <th className="sticky left-0 z-10 border-b border-line bg-surface py-2 pr-3 font-semibold">Žák</th>
                 {criteria.map((c) => <th key={c.id} className="border-b border-line px-2 py-2 text-center font-semibold">{c.name}</th>)}
                 <th className="border-b border-line px-2 py-2 text-center font-semibold">Záznamy</th>
                 <th className="border-b border-line px-2 py-2 text-center font-semibold">Cíle</th>
@@ -65,7 +65,7 @@ export default function ClassOverview() {
                 const goals = db.goals.filter((g) => g.studentId === s.id && g.subjectId === subj.id && inRange(g.setOn, per.from, per.to))
                 return (
                   <tr key={s.id} className="hover:bg-canvas/70">
-                    <td className="sticky left-0 border-b border-line bg-white py-2 pr-3">
+                    <td className="sticky left-0 border-b border-line bg-surface py-2 pr-3">
                       <Link to={`/zaci/${s.id}`} className="font-semibold hover:text-sea-600">{s.lastName} {s.firstName}</Link>
                     </td>
                     {criteria.map((c) => {
@@ -77,7 +77,7 @@ export default function ClassOverview() {
                           <span className="inline-flex items-center gap-1">
                             <LevelBadge level={last?.level} size="sm" />
                             {diff !== 0 && (
-                              <span className={diff > 0 ? 'text-xs font-bold text-[#1b7a44]' : 'text-xs font-bold text-[#a63a55]'} title={diff > 0 ? 'zlepšení' : 'potřebuje víc podpory'}>
+                              <span className={diff > 0 ? 'text-xs font-bold text-good' : 'text-xs font-bold text-bad'} title={diff > 0 ? 'zlepšení' : 'potřebuje víc podpory'}>
                                 {diff > 0 ? '↑' : '↓'}
                               </span>
                             )}

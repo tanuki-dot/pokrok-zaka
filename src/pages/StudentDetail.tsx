@@ -96,7 +96,7 @@ export default function StudentDetail() {
                       <div className="truncate text-xs text-ink-faint">{LEVELS[last.level - 1].text}</div>
                     </div>
                     {s.length > 1 && (
-                      <span className={cx('tabular text-xs font-semibold', last.level < first.level ? 'text-[#1b7a44]' : last.level > first.level ? 'text-[#a63a55]' : 'text-ink-faint')}>
+                      <span className={cx('tabular text-xs font-semibold', last.level < first.level ? 'text-good' : last.level > first.level ? 'text-bad' : 'text-ink-faint')}>
                         {first.level} → {last.level}
                       </span>
                     )}
@@ -125,7 +125,7 @@ export default function StudentDetail() {
                             className={cx(
                               'rounded-full border px-2 py-0.5 font-semibold',
                               g.status === s
-                                ? s === 'splneny' ? 'border-transparent bg-[#e6f5ec] text-[#1b7a44]' : s === 'nesplneny' ? 'border-transparent bg-[#fdeee2] text-[#a2531b]' : 'border-transparent bg-sea-50 text-sea-700'
+                                ? s === 'splneny' ? 'border-transparent bg-good-wash text-good' : s === 'nesplneny' ? 'border-transparent bg-orange-wash text-orange' : 'border-transparent bg-sea-50 text-sea-700'
                                 : 'border-line text-ink-faint hover:text-ink',
                             )}
                           >
@@ -165,7 +165,7 @@ export default function StudentDetail() {
                 const self = db.selfAssessments.find((s) => s.assessmentId === a.id)
                 return (
                   <li key={a.id} className="relative">
-                    <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-sea-500" />
+                    <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-surface bg-sea-500" />
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="tabular text-sm font-semibold text-ink-faint">{fmt(a.date)}</span>
                       <span className="font-bold">{a.topic || 'Bez tématu'}</span>
@@ -180,8 +180,8 @@ export default function StudentDetail() {
                       ))}
                     </div>
                     <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-                      {a.feedback.good && <div><dt className="text-xs font-semibold text-[#1b7a44]">Povedlo se</dt><dd>{a.feedback.good}</dd></div>}
-                      {a.feedback.todo && <div><dt className="text-xs font-semibold text-[#a2531b]">Procvičit</dt><dd>{a.feedback.todo}</dd></div>}
+                      {a.feedback.good && <div><dt className="text-xs font-semibold text-good">Povedlo se</dt><dd>{a.feedback.good}</dd></div>}
+                      {a.feedback.todo && <div><dt className="text-xs font-semibold text-orange">Procvičit</dt><dd>{a.feedback.todo}</dd></div>}
                       {a.feedback.next && <div><dt className="text-xs font-semibold text-sea-700">Další krok</dt><dd>{a.feedback.next}</dd></div>}
                     </dl>
                   </li>

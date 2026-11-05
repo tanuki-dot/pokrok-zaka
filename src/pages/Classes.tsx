@@ -115,11 +115,11 @@ export default function Classes() {
                     {p.name}
                     {confirmDel === p.id ? (
                       <>
-                        <button className="text-xs text-[#a63a55]" onClick={() => { removeSubject(p.id); setConfirmDel('') }}>smazat</button>
+                        <button className="text-xs text-bad" onClick={() => { removeSubject(p.id); setConfirmDel('') }}>smazat</button>
                         <button className="pr-2 text-xs text-ink-faint" onClick={() => setConfirmDel('')}>zpět</button>
                       </>
                     ) : (
-                      <button className="rounded-full p-1 text-ink-faint hover:text-[#a63a55]" aria-label={`Odebrat ${p.name}`} onClick={() => setConfirmDel(p.id)}><Trash2 size={14} /></button>
+                      <button className="rounded-full p-1 text-ink-faint hover:text-bad" aria-label={`Odebrat ${p.name}`} onClick={() => setConfirmDel(p.id)}><Trash2 size={14} /></button>
                     )}
                   </span>
                 ))}
@@ -165,7 +165,7 @@ export default function Classes() {
                   <span className="text-xs text-ink-faint">Sloupce „Jméno“ a „Příjmení“ nebo jeden sloupec s celým jménem.</span>
                   <input id="import-excel" type="file" accept=".xlsx,.xls,.csv" className="sr-only" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
                 </label>
-                {err && <p className="mt-3 text-sm text-[#a63a55]">{err}</p>}
+                {err && <p className="mt-3 text-sm text-bad">{err}</p>}
                 {preview && preview.length > 0 && (
                   <div className="mt-4">
                     <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
@@ -201,11 +201,11 @@ export default function Classes() {
                       <span className="min-w-0 flex-1 truncate">{s.lastName} {s.firstName}</span>
                       {confirmDel === s.id ? (
                         <span className="flex gap-2 text-xs">
-                          <button className="font-semibold text-[#a63a55]" onClick={() => { removeStudent(s.id); setConfirmDel('') }}>smazat i záznamy</button>
+                          <button className="font-semibold text-bad" onClick={() => { removeStudent(s.id); setConfirmDel('') }}>smazat i záznamy</button>
                           <button className="text-ink-faint" onClick={() => setConfirmDel('')}>zpět</button>
                         </span>
                       ) : (
-                        <button className="p-1 text-ink-faint hover:text-[#a63a55]" aria-label={`Odebrat ${s.firstName} ${s.lastName}`} onClick={() => setConfirmDel(s.id)}><Trash2 size={14} /></button>
+                        <button className="p-1 text-ink-faint hover:text-bad" aria-label={`Odebrat ${s.firstName} ${s.lastName}`} onClick={() => setConfirmDel(s.id)}><Trash2 size={14} /></button>
                       )}
                     </li>
                   ))}
