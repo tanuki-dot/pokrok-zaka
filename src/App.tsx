@@ -1,0 +1,68 @@
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { useDB } from './lib/store'
+import Dashboard from './pages/Dashboard'
+import AssessmentForm from './pages/AssessmentForm'
+import Students from './pages/Students'
+import StudentDetail from './pages/StudentDetail'
+import ClassOverview from './pages/ClassOverview'
+import Summaries from './pages/Summaries'
+import SummaryEditor from './pages/SummaryEditor'
+import Classes from './pages/Classes'
+import CriteriaPage from './pages/Criteria'
+import ExportPage from './pages/Export'
+import Management from './pages/Management'
+import SelfAssessmentPage from './pages/SelfAssessment'
+import PrintSummary from './pages/PrintSummary'
+
+export default function App() {
+  const db = useDB()
+  const loc = useLocation()
+
+  // Stránky bez rozhraní učitele: sebehodnocení žáka (odkaz/QR) a tisk.
+  if (loc.pathname.startsWith('/sebehodnoceni/') || loc.pathname.startsWith('/tisk/')) {
+    return (
+      <Routes>
+        <Route path="/sebehodnoceni/:code" element={<SelfAssessmentPage />} />
+        <Route path="/tisk/:id" element={<PrintSummary />} />
+      </Routes>
+    )
+  }
+
+  if (db.settings.role === 'vedeni') {
+    return (
+      <Layout>
+        <Routes>
+          <Route path="/vedeni" element={<Management />} />
+          <Route path="*" element={<Navigate to="/vedeni" replace />} />
+        </Routes>
+      </Layout>
+    )
+  }
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/hodnoceni/nove" element={<FormKeyed />} />
+        <Route path="/hodnoceni/:id" element={<FormKeyed />} />
+        <Route path="/zaci" element={<Students />} />
+        <Route path="/zaci/:id" element={<StudentDetail />} />
+        <Route path="/trida" element={<ClassOverview />} />
+        <Route path="/souhrny" element={<Summaries />} />
+        <Route path="/souhrny/:id" element={<SummaryEditor />} />
+        <Route path="/tridy" element={<Classes />} />
+        <Route path="/kriteria" element={<CriteriaPage />} />
+        <Route path="/export" element={<ExportPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
+  )
+}
+
+/** Každá navigace na formulář = čistý stav (nový žák, jiný záznam). */
+function FormKeyed() {
+  const { id } = useParams()
+  const loc = useLocation()
+  return <AssessmentForm key={id ?? `nove-${loc.key}`} />
+}

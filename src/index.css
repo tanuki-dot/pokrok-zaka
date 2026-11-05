@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Světlé rozhraní s modrou plochou, bílými kartami a oranžovým akcentem
+   (podle vizuální ukázky v zadání). */
+@theme static {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+
+  --color-canvas: #f3f6fb;
+  --color-line: #e3e9f2;
+  --color-ink: #16213a;
+  --color-ink-soft: #55627a;
+  --color-ink-faint: #8a96ab;
+
+  --color-brand-50: #fff4ec;
+  --color-brand-100: #ffe4d1;
+  --color-brand-500: #ee7424;
+  --color-brand-600: #d9601a;
+  --color-brand-700: #b44c12;
+
+  --color-sea-50: #eef4ff;
+  --color-sea-100: #dbe7ff;
+  --color-sea-500: #2f6bea;
+  --color-sea-600: #2257cc;
+  --color-sea-700: #1b45a3;
+
+  /* Úrovně 1–5: 1 = nejvyšší zvládnutí */
+  --color-lv1: #1f9d55;
+  --color-lv2: #6aa83a;
+  --color-lv3: #d4a017;
+  --color-lv4: #e07b2a;
+  --color-lv5: #c8506a;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; letter-spacing: -0.01em; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+:focus-visible { outline: 2px solid var(--color-sea-500); outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .print-sheet { box-shadow: none !important; border: 0 !important; margin: 0 !important; max-width: none !important; }
+  @page { size: A4; margin: 18mm 16mm; }
+}
