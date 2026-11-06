@@ -271,7 +271,7 @@ export default function Landing() {
 
       <footer className="mx-auto flex max-w-[1160px] flex-col gap-3 px-4 py-8 text-sm text-ink-faint sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span>Pokrok žáka · verze 0.0.1-alpha · licence MIT</span>
+          <span>Pokrok žáka · verze {__APP_VERSION__} · licence MIT</span>
           <button onClick={openPrivacy} className="font-semibold text-ink-soft underline-offset-2 hover:text-ink hover:underline">Soukromí</button>
         </span>
         <a href="https://github.com/tanuki-dot/pokrok-zaka" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-ink-soft hover:text-ink">
