@@ -12,6 +12,8 @@ npm run dev        # http://localhost:5173
 npm run build      # produkční build do dist/
 ```
 
+Po otevření se ukáže úvodní stránka s tlačítkem „Vyzkoušet demo“ (přihlášení zatím není). Přehled učitele je na `#/prehled`.
+
 Aplikace běží v **demo režimu**: obsahuje fiktivní třídy ZŠ (7.A) i SŠ (ME1) s ukázkovými záznamy za posledních 9 týdnů. Data se ukládají v prohlížeči (localStorage). Tlačítkem „Obnovit ukázková data“ vlevo dole se vrátí do výchozího stavu.
 
 Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a PDF jsou vždy světlé.
@@ -53,6 +55,10 @@ supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení pře
 - Přepojit `store.ts` na Supabase (schéma je v `supabase/migrations/0001_init.sql`) a přidat přihlášení učitelů.
 - Hosting v EU, RLS na všech tabulkách (připraveno ve schématu), audit log (triggery).
 - PDF teď vzniká přes tiskový dialog prohlížeče („Uložit jako PDF“). Pro jednotný výstup lze později generovat na serveru.
+
+## Soukromí
+
+Aplikace nepoužívá cookies ani služby třetích stran. Písma (Figtree, Bricolage Grotesque, licence SIL OFL 1.1) jsou přibalená přes Fontsource, takže se nic nenačítá z Google Fonts. Nezbytná data se ukládají jen do localStorage v prohlížeči. Při první návštěvě se jednou zobrazí informační lišta, později je dostupná přes odkaz „Soukromí“. Pokud v budoucnu přibude něco volitelného (např. analytika), je potřeba vrátit volbu Přijmout / Odmítnout (viz `src/lib/privacy.ts`).
 
 ## Licence
 

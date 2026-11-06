@@ -3,8 +3,8 @@
 /* Světlé rozhraní s modrou plochou, bílými kartami a oranžovým akcentem
    (podle vizuální ukázky v zadání). */
 @theme static {
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+  --font-sans: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Figtree Variable", ui-sans-serif, sans-serif;
 
   /* Plochy a text */
   --color-canvas: #f3f6fb;

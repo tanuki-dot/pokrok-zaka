@@ -14,10 +14,14 @@ import ExportPage from './pages/Export'
 import Management from './pages/Management'
 import SelfAssessmentPage from './pages/SelfAssessment'
 import PrintSummary from './pages/PrintSummary'
+import Landing from './pages/Landing'
 
 export default function App() {
   const db = useDB()
   const loc = useLocation()
+
+  // Úvodní stránka (zatím bez přihlášení, jen proklik do dema).
+  if (loc.pathname === '/') return <Landing />
 
   // Stránky bez rozhraní učitele: sebehodnocení žáka (odkaz/QR) a tisk.
   if (loc.pathname.startsWith('/sebehodnoceni/') || loc.pathname.startsWith('/tisk/')) {
@@ -43,7 +47,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/prehled" element={<Dashboard />} />
         <Route path="/hodnoceni/nove" element={<FormKeyed />} />
         <Route path="/hodnoceni/:id" element={<FormKeyed />} />
         <Route path="/zaci" element={<Students />} />
@@ -54,7 +58,7 @@ export default function App() {
         <Route path="/tridy" element={<Classes />} />
         <Route path="/kriteria" element={<CriteriaPage />} />
         <Route path="/export" element={<ExportPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/prehled" replace />} />
       </Routes>
     </Layout>
   )

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, GraduationCap, LayoutDashboard, Menu, RotateCcw,
   Monitor, Moon, School, SlidersHorizontal, Sun, Users, X,
@@ -9,9 +9,10 @@ import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
 import { setTheme, useTheme, type ThemePref } from '../lib/theme'
+import { openPrivacy } from '../lib/privacy'
 
 const TEACHER_NAV = [
-  { to: '/', label: 'Přehled', icon: LayoutDashboard, end: true },
+  { to: '/prehled', label: 'Přehled', icon: LayoutDashboard },
   { to: '/hodnoceni/nove', label: 'Nové hodnocení', icon: ClipboardPen },
   { to: '/zaci', label: 'Žáci a pokrok', icon: GraduationCap },
   { to: '/trida', label: 'Přehled třídy', icon: BarChart3 },
@@ -33,7 +34,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Hlavní navigace">
-      <div className="mb-6 flex items-center gap-2.5 px-2 pt-1">
+      <Link to="/" title="Úvodní stránka" className="mb-6 flex items-center gap-2.5 rounded-xl px-2 pt-1">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white">
           <BookOpenCheck size={20} />
         </span>
@@ -41,7 +42,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="font-display text-[17px] font-bold">Pokrok žáka</div>
           <div className="text-xs text-ink-faint">formativní hodnocení</div>
         </div>
-      </div>
+      </Link>
       {items.map(({ to, label, icon: Icon, ...rest }) => (
         <NavLink
           key={to}
@@ -96,7 +97,7 @@ export function Layout({ children }: { children: ReactNode }) {
             onChange={(e) => {
               const r = e.target.value as 'ucitel' | 'vedeni'
               setRole(r)
-              nav(r === 'ucitel' ? '/' : '/vedeni')
+              nav(r === 'ucitel' ? '/prehled' : '/vedeni')
             }}
           >
             <option value="ucitel">Učitel/ka</option>
@@ -106,7 +107,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {confirmReset ? (
           <div className="flex items-center gap-2 px-1 text-xs">
             <span className="text-ink-soft">Obnovit demo data?</span>
-            <button className="font-semibold text-bad" onClick={() => { resetDemo(); setConfirmReset(false); nav('/') }}>Ano</button>
+            <button className="font-semibold text-bad" onClick={() => { resetDemo(); setConfirmReset(false); nav('/prehled') }}>Ano</button>
             <button className="font-semibold text-ink-soft" onClick={() => setConfirmReset(false)}>Ne</button>
           </div>
         ) : (
@@ -114,6 +115,9 @@ export function Layout({ children }: { children: ReactNode }) {
             <RotateCcw size={14} /> Obnovit ukázková data
           </button>
         )}
+        <button className="px-1 text-left text-xs font-semibold text-ink-faint hover:text-ink" onClick={openPrivacy}>
+          Soukromí
+        </button>
       </div>
     </nav>
   )
