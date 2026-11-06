@@ -7,6 +7,7 @@ import '@fontsource-variable/figtree'
 import '@fontsource-variable/bricolage-grotesque'
 import './index.css'
 import './lib/theme'
+import { hideSplash } from './lib/splash'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -16,3 +17,5 @@ createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </StrictMode>,
 )
+
+hideSplash()
