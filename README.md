@@ -1,6 +1,6 @@
 # Pokrok žáka
 
-Webová aplikace pro ZŠ a SŠ vytvořená pomocí claude, která propojuje formativní hodnocení, SWOT analýzu a sledování individuálního pokroku žáků. Postavená podle zadání `formativní hodnocení.docx`.
+Webová aplikace pro ZŠ a SŠ **vytvořená pomocí claude**, která propojuje formativní hodnocení, SWOT analýzu a sledování individuálního pokroku žáků. Postavená podle zadání `formativní hodnocení.docx`.
 
 > Hlavní zásada: učitel hodnotí konkrétní dovednost, poskytuje zpětnou vazbu a stanovuje další cíl. Aplikace zaznamenává vývoj, ale nenahrazuje pedagogické rozhodnutí.
 
