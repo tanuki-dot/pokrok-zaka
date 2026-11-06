@@ -4,6 +4,7 @@ import type {
 import { addDays, periodFor, today, weekStart } from './dates'
 import { generateSummary } from './analysis'
 import { uid } from './util'
+import { DEFAULT_BELLS, demoTimetable } from './timetable'
 
 /*
  * Demo režim: fiktivní školy, třídy a žáci (ZŠ i SŠ), aby šlo formativní hodnocení
@@ -207,6 +208,7 @@ export function createDemoDB(): DB {
     weeks: number,
     critIds: string[],
     alwaysScored: string[],
+    lesson: number,
   ) {
     people.forEach((st, si) => {
       const start: Record<string, number> = {}
@@ -255,6 +257,7 @@ export function createDemoDB(): DB {
           },
           swot: { s: '', w: '', o: '', t: '', proposed: false },
           nextGoal: w % 2 === 1 || w === weeks - 1 ? nextText : '',
+          lesson,
           selfCode: null,
           createdAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
           updatedAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
@@ -301,11 +304,11 @@ export function createDemoDB(): DB {
 
   const defaults = DEFAULT_CRITERIA.map((c) => c.id)
   generate('p-me1-inf', students.filter((s) => s.classId === 'c-me1'), INFO_TOPICS, 1, 9,
-    [...defaults, 'k-inf-suma'], ['k-samostatnost', 'k-znalosti'])
+    [...defaults, 'k-inf-suma'], ['k-samostatnost', 'k-znalosti'], 2)
   generate('p-7a-mat', students.filter((s) => s.classId === 'c-7a'), MATH_TOPICS, 2, 8,
-    [...defaults.filter((c) => c !== 'k-pokrok'), 'k-7a-ulohy'], ['k-znalosti', 'k-dovednosti'])
+    [...defaults.filter((c) => c !== 'k-pokrok'), 'k-7a-ulohy'], ['k-znalosti', 'k-dovednosti'], 3)
   generate('p-me1-mat', students.filter((s) => s.classId === 'c-me1').slice(0, 5), MATH_TOPICS, 3, 4,
-    defaults, ['k-znalosti'])
+    defaults, ['k-znalosti'], 2)
 
   const phrases: Phrase[] = PHRASES.map((p) => ({ ...p, id: uid('v') }))
 
@@ -322,7 +325,8 @@ export function createDemoDB(): DB {
     summaries: [],
     phrases,
     audit: [],
-    settings: { role: 'ucitel', teacherName: 'Mgr. Jana Učitelová', schoolType: 'SS' },
+    timetable: demoTimetable(),
+    settings: { role: 'ucitel', teacherName: 'Mgr. Jana Učitelová', schoolType: 'SS', bells: DEFAULT_BELLS },
   }
 
   // Ukázkové souhrny: schválený měsíční (minulý měsíc) a rozpracovaný týdenní (minulý týden).

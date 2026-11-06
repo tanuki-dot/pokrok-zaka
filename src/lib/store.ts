@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from 'react'
 import type {
-  Assessment, AuditEntry, Criterion, DB, Goal, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary,
+  Assessment, AuditEntry, Bell, Criterion, DB, Goal, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary,
 } from './types'
 import { createDemoDB } from './seed'
 import { uid } from './util'
+import { DEFAULT_BELLS, demoTimetable } from './timetable'
 
 /**
  * Lokální úložiště pro demo režim (localStorage). Rozhraní akcí odpovídá tomu,
@@ -20,12 +21,26 @@ function load(): DB {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as DB
-      if (parsed.version === 1) return parsed
+      if (parsed.version === 1) return normalize(parsed)
     }
   } catch {
     /* prázdné nebo zablokované úložiště → demo data */
   }
   return createDemoDB()
+}
+
+/** Doplní pole, která přibyla v novějších verzích (rozvrh, zvonění). */
+function normalize(d: DB): DB {
+  const isDemo = d.classes.some((c) => c.id === 'c-me1')
+  return {
+    ...d,
+    timetable: d.timetable
+      ? d.timetable.map((x) => (x.room !== undefined || !isDemo ? x : { ...x, room: demoTimetable().find((y) => y.subjectId === x.subjectId)?.room }))
+      : isDemo
+        ? demoTimetable()
+        : [],
+    settings: { ...d.settings, bells: d.settings.bells?.length ? d.settings.bells : DEFAULT_BELLS },
+  }
 }
 
 function persist() {
@@ -52,7 +67,7 @@ if (typeof window !== 'undefined') {
     try {
       const next = JSON.parse(e.newValue) as DB
       if (next.version === 1) {
-        db = next
+        db = normalize(next)
         listeners.forEach((l) => l())
       }
     } catch {
@@ -117,6 +132,7 @@ export function removeSubject(id: string) {
   commit({
     ...db,
     subjects: db.subjects.filter((x) => x.id !== id),
+    timetable: db.timetable.filter((x) => x.subjectId !== id),
     criteria: db.criteria.filter((c) => c.subjectId !== id),
     audit: audit(db, 'smazáno', 'předmět', s?.name ?? ''),
   })
@@ -320,5 +336,29 @@ export function deleteSummary(id: string) {
 
 export function replaceDB(next: DB) {
   if (next?.version !== 1 || !Array.isArray(next.assessments)) throw new Error('Neplatná záloha')
-  commit({ ...next, audit: audit(next, 'importováno', 'záloha', `${next.assessments.length} záznamů`) })
+  const n = normalize(next)
+  commit({ ...n, audit: audit(n, 'importováno', 'záloha', `${n.assessments.length} záznamů`) })
+}
+
+// ─── Rozvrh a zvonění ────────────────────────────────────────────────────────
+
+/** Nastaví nebo vyprázdní jednu buňku rozvrhu. */
+export function setTimetableCell(day: number, period: number, value: { classId: string; subjectId: string; room?: string } | null) {
+  const rest = db.timetable.filter((x) => !(x.day === day && x.period === period))
+  const room = value?.room?.trim()
+  // Prázdný řetězec = učebna záměrně nevyplněná (normalize ji pak nedoplní z dema).
+  const timetable = value ? [...rest, { id: uid('r'), day, period, classId: value.classId, subjectId: value.subjectId, room: room ?? '' }] : rest
+  commit({ ...db, timetable, audit: audit(db, value ? 'upraveno' : 'smazáno', 'rozvrh', `${['Po', 'Út', 'St', 'Čt', 'Pá'][day]} ${period}. hod`) })
+}
+
+export function setBells(bells: Bell[]) {
+  const sorted = [...bells].sort((a, b) => a.period - b.period)
+  const periods = new Set(sorted.map((b) => b.period))
+  commit({
+    ...db,
+    settings: { ...db.settings, bells: sorted },
+    // Hodiny, které ve zvonění zmizely, z rozvrhu odebrat.
+    timetable: db.timetable.filter((x) => periods.has(x.period)),
+    audit: audit(db, 'upraveno', 'zvonění', `${sorted.length} hodin`),
+  })
 }

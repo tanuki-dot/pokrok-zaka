@@ -70,6 +70,8 @@ export interface Assessment {
   feedback: Feedback
   swot: Swot
   nextGoal: string
+  /** Číslo vyučovací hodiny (podle zvonění), pokud je známé. */
+  lesson?: number | null
   /** Jednorázový kód pro sebehodnocení žáka (QR / odkaz). */
   selfCode: string | null
   createdAt: string
@@ -142,6 +144,24 @@ export interface AuditEntry {
   label: string
 }
 
+/** Zvonění: jedna vyučovací hodina a její čas (HH:MM). */
+export interface Bell {
+  period: number
+  start: string
+  end: string
+}
+
+/** Položka rozvrhu: den (0 = pondělí … 4 = pátek), hodina, třída a předmět. */
+export interface TimetableEntry {
+  id: string
+  day: number
+  period: number
+  classId: string
+  subjectId: string
+  /** Číslo učebny (nepovinné). */
+  room?: string
+}
+
 export interface DB {
   version: 1
   schools: School[]
@@ -155,5 +175,6 @@ export interface DB {
   summaries: Summary[]
   phrases: Phrase[]
   audit: AuditEntry[]
-  settings: { role: Role; teacherName: string; schoolType: SchoolType }
+  timetable: TimetableEntry[]
+  settings: { role: Role; teacherName: string; schoolType: SchoolType; bells: Bell[] }
 }

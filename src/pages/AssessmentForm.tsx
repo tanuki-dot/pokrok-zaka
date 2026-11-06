@@ -8,6 +8,8 @@ import { setSelection } from '../lib/selection'
 import { LEVELS, proposeSwot, studentAssessments } from '../lib/analysis'
 import { fmt, today } from '../lib/dates'
 import { fullName } from '../lib/util'
+import { dayIndex, lessonAt } from '../lib/timetable'
+import { parseISO } from '../lib/dates'
 import type { Feedback, Level, Swot } from '../lib/types'
 import { Button, Card, cx, Field, Input, LevelBadge, PageHeader, Pill, Select, Textarea } from '../components/ui'
 
@@ -47,7 +49,14 @@ export default function AssessmentForm() {
   const loc = useLocation()
   const carry = (loc.state as { carry?: Partial<AssessmentDraft> } | null)?.carry
   const [draft, setDraft] = useState<AssessmentDraft>(() =>
-    existing ? { ...existing } : { ...empty(params.get('zak') ?? students[0]?.id ?? '', subj?.id ?? ''), ...carry },
+    existing
+      ? { ...existing }
+      : {
+          ...empty(params.get('zak') ?? students[0]?.id ?? '', subj?.id ?? ''),
+          // Hodina se předvyplní podle zvonění (funguje i bez rozvrhu).
+          lesson: lessonAt(db, new Date())?.bell.period ?? null,
+          ...carry,
+        },
   )
   const [saved, setSaved] = useState<boolean>(!!(loc.state as { saved?: boolean } | null)?.saved)
   useEffect(() => {
@@ -105,7 +114,7 @@ export default function AssessmentForm() {
       const next = [...students.slice(idx + 1), ...students.slice(0, idx)].find((s) => !done.has(s.id))
       nav('/hodnoceni/nove' + (next ? `?zak=${next.id}` : ''), {
         state: {
-          carry: { date: draft.date, topic: draft.topic, goal: draft.goal, successCriterion: draft.successCriterion },
+          carry: { date: draft.date, lesson: draft.lesson, topic: draft.topic, goal: draft.goal, successCriterion: draft.successCriterion },
           saved: true,
         },
       })
@@ -115,6 +124,14 @@ export default function AssessmentForm() {
       setSaved(true)
     }
   }
+
+  const lessonEntry =
+    draft.lesson != null ? db.timetable.find((x) => x.day === dayIndex(parseISO(draft.date)) && x.period === draft.lesson) : undefined
+  const lessonHint = !lessonEntry
+    ? undefined
+    : lessonEntry.classId === cls?.id && lessonEntry.subjectId === draft.subjectId
+      ? 'Podle rozvrhu.'
+      : `V rozvrhu: ${db.classes.find((c) => c.id === lessonEntry.classId)?.name ?? ''} ${db.subjects.find((p) => p.id === lessonEntry.subjectId)?.name ?? ''}`
 
   if (!subj || !cls) {
     return (
@@ -153,7 +170,7 @@ export default function AssessmentForm() {
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Step n={1} title="Vyberu žáka">
-            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_180px]">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_170px_190px]">
               <Field label="Třída a předmět">
                 <div className="flex h-[42px] items-center rounded-xl border border-line bg-canvas px-3 text-[15px]">{cls.name} · {subj.name}</div>
               </Field>
@@ -166,6 +183,18 @@ export default function AssessmentForm() {
               </Field>
               <Field label="Datum">
                 <Input id="datum" type="date" value={draft.date} onChange={(e) => set('date', e.target.value)} />
+              </Field>
+              <Field label="Hodina" hint={lessonHint}>
+                <Select
+                  id="hodina"
+                  value={draft.lesson ?? ''}
+                  onChange={(e) => set('lesson', e.target.value === '' ? null : Number(e.target.value))}
+                >
+                  <option value="">Neuvedeno</option>
+                  {[...db.settings.bells].sort((a, b) => a.period - b.period).map((b) => (
+                    <option key={b.period} value={b.period}>{b.period}. hodina · {b.start}</option>
+                  ))}
+                </Select>
               </Field>
             </div>
           </Step>

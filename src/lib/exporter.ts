@@ -18,6 +18,7 @@ export function buildSheets(db: DB, subjectId: string | 'vse') {
     const self = db.selfAssessments.find((x) => x.assessmentId === a.id)
     const row: Record<string, string | number> = {
       Datum: a.date,
+      Hodina: a.lesson ?? '',
       Třída: cl(s?.classId),
       Předmět: sub(a.subjectId),
       Žák: s ? fullName(s) : '',

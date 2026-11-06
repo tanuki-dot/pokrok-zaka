@@ -32,6 +32,7 @@ Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a P
 | 8 – Změny v čase, graf (obrácená osa: 1 = nahoře) | **Žáci a pokrok** → detail žáka |
 | 9 – Týdenní / měsíční / pololetní souhrn | **Souhrny** |
 | 10 – Kontrola, schválení, tisk / PDF, export | **Souhrny** → schválit → Tisk / PDF; **Export dat** (xlsx, csv, záloha) |
+| Rozvrh hodin s učebnami: třída a předmět se vyberou podle času (jde i bez rozvrhu) | **Rozvrh**, štítek „Teď: 3. hod“ v horní liště, karta „Dnešní rozvrh“ v přehledu |
 | Přehled třídy a vedení školy | **Přehled třídy**; přepnout „Přihlášen jako → Vedení školy“ |
 
 ### Jak vznikají souhrny a návrhy SWOT
@@ -47,7 +48,8 @@ src/lib/seed.ts       demo data (fiktivní žáci)
 src/lib/analysis.ts   trendy, souhrny, návrh SWOT
 src/lib/exporter.ts   export xlsx / csv
 src/pages/*           obrazovky
-supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení přes kód, agregace pro vedení)
+src/lib/timetable.ts  zvonění, rozvrh, výpočet aktuální hodiny
+supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení přes kód, agregace pro vedení, rozvrh)
 ```
 
 ## Na ostrý provoz (zatím není hotové)
@@ -55,6 +57,10 @@ supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení pře
 - Přepojit `store.ts` na Supabase (schéma je v `supabase/migrations/0001_init.sql`) a přidat přihlášení učitelů.
 - Hosting v EU, RLS na všech tabulkách (připraveno ve schématu), audit log (triggery).
 - PDF teď vzniká přes tiskový dialog prohlížeče („Uložit jako PDF“). Pro jednotný výstup lze později generovat na serveru.
+
+### Rozvrh a výběr hodiny podle času
+
+Podle zvonění aplikace pozná, která hodina právě probíhá (10 min před začátkem až 15 min po konci). Pokud je hodina v rozvrhu, vybere se její třída a předmět automaticky, ale jen jednou za hodinu, takže ruční výběr učitele nepřebije. Tlačítkem „Přepnout“ se k hodině z rozvrhu vrátíte. Bez rozvrhu se třída a předmět vybírají ručně a ve formuláři se podle času předvyplní jen číslo hodiny (jde změnit nebo zrušit).
 
 ## Soukromí
 

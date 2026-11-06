@@ -167,7 +167,7 @@ export default function StudentDetail() {
                   <li key={a.id} className="relative">
                     <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-surface bg-sea-500" />
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="tabular text-sm font-semibold text-ink-faint">{fmt(a.date)}</span>
+                      <span className="tabular text-sm font-semibold text-ink-faint">{fmt(a.date)}{a.lesson != null && ` · ${a.lesson}. hod`}</span>
                       <span className="font-bold">{a.topic || 'Bez tématu'}</span>
                       {self && <Pill tone="brand"><UserCheck size={12} /> sebehodnocení</Pill>}
                       <Link to={`/hodnoceni/${a.id}`} className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-sea-600"><Pencil size={14} /> Otevřít a opravit</Link>

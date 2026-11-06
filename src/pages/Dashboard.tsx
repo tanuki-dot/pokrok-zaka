@@ -1,11 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertCircle, ArrowRight, ClipboardPen, FileClock, LayoutDashboard, MessageSquareText, Target, UserCheck } from 'lucide-react'
+import { AlertCircle, ArrowRight, CalendarClock, ClipboardPen, FileClock, LayoutDashboard, MessageSquareText, Target, UserCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useCtx } from '../lib/useCtx'
 import { addDays, fmtShort, relative, today, weekStart } from '../lib/dates'
 import { Button, Card, Pill, PageHeader } from '../components/ui'
 import { fullName } from '../lib/util'
+import { DAYS, dayIndex, lessonAt, todaysLessons } from '../lib/timetable'
+import { selectLesson, useNow } from '../lib/useLesson'
 import { TOOLTIP_STYLE } from '../components/chartStyle'
 
 function Stat({ icon, value, label, note, tone }: { icon: ReactNode; value: ReactNode; label: string; note?: ReactNode; tone: string }) {
@@ -37,6 +39,10 @@ export default function Dashboard() {
   const selfThisWeek = db.selfAssessments.filter((s) => thisWeek.some((a) => a.id === s.assessmentId))
 
   const missing = students.filter((s) => !thisWeek.some((a) => a.studentId === s.id))
+  const navigate = useNavigate()
+  const now = useNow()
+  const lessons = todaysLessons(db, now)
+  const current = lessonAt(db, now)
 
   const weeks = Array.from({ length: 8 }, (_, i) => addDays(mon, -7 * (7 - i)))
   const activity = weeks.map((w) => ({
@@ -87,6 +93,52 @@ export default function Dashboard() {
           </Link>
         </div>
       )}
+
+      <Card
+        className="mt-5"
+        title={<span className="inline-flex items-center gap-2"><CalendarClock size={18} className="text-brand-500" /> Dnešní rozvrh</span>}
+        action={<Link to="/rozvrh" className="text-sm font-semibold text-sea-600">Upravit rozvrh <ArrowRight className="inline" size={14} /></Link>}
+      >
+        {dayIndex(now) > 4 ? (
+          <p className="text-sm text-ink-faint">Dnes je víkend. Rozvrh je nastavený na pondělí až pátek.</p>
+        ) : lessons.length === 0 ? (
+          <p className="text-sm text-ink-faint">
+            Na {DAYS[dayIndex(now)].toLowerCase()} nemáte v rozvrhu žádnou hodinu. Třídu a předmět vyberete nahoře ručně, nebo si <Link to="/rozvrh" className="font-semibold text-sea-600">vyplňte rozvrh</Link>.
+          </p>
+        ) : (
+          <ul className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+            {lessons.map(({ entry, bell }) => {
+              const c = db.classes.find((x) => x.id === entry.classId)
+              const p = db.subjects.find((x) => x.id === entry.subjectId)
+              const isNow = current?.bell.period === entry.period
+              const past = bell ? bell.end < `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` && !isNow : false
+              return (
+                <li key={entry.id} className="snap-start">
+                  <div
+                    className={`flex w-[190px] flex-col gap-2 rounded-2xl border p-3.5 ${isNow ? 'border-brand-500 bg-brand-50' : 'border-line'} ${past ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-center justify-between text-xs font-semibold text-ink-faint">
+                      <span className="tabular">{entry.period}. hod · {bell?.start}–{bell?.end}</span>
+                      {isNow && <span className="text-brand-700">teď</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-bold">{c?.name ?? '?'}</div>
+                      <div className="truncate text-sm text-ink-soft">{p?.name ?? '?'}</div>
+                      {entry.room && <div className="tabular text-xs text-ink-faint">učebna {entry.room}</div>}
+                    </div>
+                    <button
+                      onClick={() => { selectLesson(db, entry); navigate('/hodnoceni/nove', { state: { carry: { lesson: entry.period } } }) }}
+                      className="mt-1 inline-flex items-center gap-1 self-start text-sm font-semibold text-sea-600 hover:underline"
+                    >
+                      Hodnotit <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Card>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card title="Záznamy po týdnech" action={<Pill tone="sea">{subj?.name}</Pill>}>
