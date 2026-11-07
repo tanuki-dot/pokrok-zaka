@@ -1,11 +1,12 @@
 import { CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { LEVELS, weeklyLevels, type Point } from '../lib/analysis'
+import { weeklyLevels, type Point } from '../lib/analysis'
+import { levelLabel } from '../lib/levels'
 import { fmtShort } from '../lib/dates'
 import { TOOLTIP_STYLE } from './chartStyle'
 
 /**
- * Graf jedné dovednosti po týdnech. Škála je obrácená (1 = nejvyšší zvládnutí),
- * proto je osa Y převrácená: zlepšení jde nahoru.
+ * Graf jedné dovednosti po týdnech. Škála 1 (nejnižší) – 5 (nejvyšší): zlepšení jde nahoru.
+ * Zvýrazněné pásmo 4–5 = zvládá samostatně.
  */
 export function ProgressChart({ points, height = 220, color = 'var(--color-sea-500)' }: { points: Point[]; height?: number; color?: string }) {
   const data = weeklyLevels(points).map((p, i) => ({ x: `${i + 1}. týden`, week: p.week, level: p.level }))
@@ -14,12 +15,12 @@ export function ProgressChart({ points, height = 220, color = 'var(--color-sea-5
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: -18 }}>
-          <ReferenceArea y1={1} y2={2} fill="var(--color-lv1)" fillOpacity={0.06} />
+          <ReferenceArea y1={4} y2={5} fill="var(--color-lv5)" fillOpacity={0.07} />
           <CartesianGrid stroke="var(--color-line)" vertical={false} />
           <XAxis dataKey="week" tickFormatter={(w: string) => fmtShort(w)} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
-          <YAxis reversed domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
+          <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--color-ink-faint)' }} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(v) => [`${v} – ${LEVELS[Number(v) - 1]?.text ?? ''}`, 'Úroveň']}
+            formatter={(v) => [levelLabel(Number(v)), 'Úroveň']}
             labelFormatter={(w) => `Týden od ${fmtShort(String(w))}`}
             contentStyle={TOOLTIP_STYLE}
           />
@@ -45,7 +46,7 @@ export function Spark({ points }: { points: Point[] }) {
   const W = 64
   const H = 22
   const xs = (i: number) => (i / (w.length - 1)) * (W - 4) + 2
-  const ys = (l: number) => ((l - 1) / 4) * (H - 4) + 2 // 1 nahoře
+  const ys = (l: number) => ((5 - l) / 4) * (H - 4) + 2 // 5 nahoře
   const d = w.map((p, i) => `${i ? 'L' : 'M'}${xs(i).toFixed(1)},${ys(p.level).toFixed(1)}`).join(' ')
   const last = w[w.length - 1]
   return (

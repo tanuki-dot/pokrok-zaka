@@ -17,34 +17,34 @@ import { cx } from '../components/ui'
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
 const STEPS = [
-  ['Vyberu žáka a předmět', 'Třída, předmět, žák a datum. Téma a cíl hodiny se převezmou z minula.'],
-  ['Vyberu hodnocenou dovednost', 'Znalosti, samostatnost, spolupráce… nebo vlastní kritérium předmětu.'],
-  ['Kliknu na úroveň 1–5', 'Jedno kliknutí. U každé úrovně je vidět, co znamená.'],
-  ['Napíšu, co se povedlo a co dál', 'Tři krátké otázky, s nabídkou předpřipravených vět.'],
-  ['Uložím hodnocení', 'Záznam jde kdykoli otevřít a opravit.'],
+  ['Vyberu žáka a předmět', 'Třída, předmět, žák a datum. Téma hodiny se převezme z minula.'],
+  ['Stanovím vzdělávací cíl', 'Cíl hodiny a jeho splnění: splněno, částečně, nesplněno. Cíl jde navrhnout z předchozích záznamů.'],
+  ['Ohodnotím vybrané dovednosti', 'Vyberu, co v hodině sleduji, a kliknu na úroveň 1–5. Ostatní zůstane nehodnoceno.'],
+  ['Žák se ohodnotí sám', 'Krátký dotazník přes QR kód – 6 otázek, 1–2 minuty, bez účtu.'],
+  ['Uložím hodnocení', 'SWOT a formativní hodnocení se vytvoří samy, učitel je jen upraví.'],
 ]
 
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Users size={22} />, title: 'Evidence', text: 'Školy, třídy, žáci a předměty. Seznam žáků nahrajete z Excelu.' },
-  { icon: <ClipboardCheck size={22} />, title: 'Hodnocení 1–5', text: 'Sedm základních oblastí pro všechny předměty a k nim vlastní kritéria.' },
-  { icon: <Grid2x2 size={22} />, title: 'SWOT analýza', text: 'Silné stránky, oblasti ke zlepšení, příležitosti a překážky. Návrh vzniká z hodnocení.' },
+  { icon: <ClipboardCheck size={22} />, title: 'Hodnocení 1–5', text: 'Sedm základních oblastí pro všechny předměty a k nim vlastní kritéria. 1 = nejnižší, 5 = nejvyšší.' },
+  { icon: <Grid2x2 size={22} />, title: 'SWOT a formativní hodnocení', text: 'Vzniká automaticky z hodnocení učitele, sebehodnocení žáka a zpětné vazby, včetně doporučení pro další rozvoj.' },
   { icon: <CalendarRange size={22} />, title: 'Týden · Měsíc · Pololetí', text: 'Souhrny a slovní hodnocení se skládají z krátkých záznamů. Učitel je upraví a schválí.' },
-  { icon: <QrCode size={22} />, title: 'Sebehodnocení žáka', text: 'Žák odpoví na pět otázek přes QR kód, bez účtu. Odpovědi vidíte vedle svého hodnocení.' },
+  { icon: <QrCode size={22} />, title: 'Sebehodnocení žáka', text: 'Jeden univerzální dotazník pro všechny předměty. Žák odpoví přes QR kód, odpovědi vidíte vedle svého hodnocení.' },
   { icon: <FileDown size={22} />, title: 'Výstupy', text: 'Tisk do PDF, export do Excelu a přehled třídy i celé školy.' },
 ]
 
 const PRINCIPLES = [
   ['Žák se porovnává sám se sebou', 'Graf ukazuje vývoj jedné dovednosti v čase, ne pořadí ve třídě.'],
-  ['Čísla nejsou známky', 'Úroveň 1–5 popisuje aktuální zvládnutí dovednosti. 1 znamená nejvyšší.'],
+  ['Čísla nejsou známky', 'Úroveň 1–5 popisuje aktuální zvládnutí dovednosti. 5 znamená nejvyšší.'],
   ['Aplikace nic nedomýšlí', 'Souhrny vznikají jen z uložených záznamů a u každé věty je vidět, odkud pochází.'],
   ['Rozhoduje učitel', 'Návrh slovního hodnocení učitel upraví a schválí. Tisknout jde jen schválená verze.'],
 ]
 
-/** Ukázka z praxe podle zadání: samostatnost 4 → 3 → 3 → 2 za čtyři týdny. */
+/** Ukázka z praxe: samostatnost 2 → 3 → 3 → 4 za čtyři týdny (1 = nejnižší, 5 = nejvyšší). */
 function HeroCard() {
-  const weeks = [4, 3, 3, 2]
+  const weeks = [2, 3, 3, 4]
   const x = (i: number) => 34 + i * 76
-  const y = (l: number) => 14 + (l - 1) * 24
+  const y = (l: number) => 14 + (5 - l) * 24 // 5 nahoře
   const path = weeks.map((l, i) => `${i ? 'L' : 'M'}${x(i)},${y(l)}`).join(' ')
   return (
     <div className="relative mx-auto w-full max-w-[460px]">
@@ -64,15 +64,14 @@ function HeroCard() {
             <div className="font-semibold">Samostatnost</div>
             <div className="text-sm text-ink-faint">Zvládne pracovat bez pomoci?</div>
           </div>
-          <div className="flex gap-1.5" aria-label="Vybraná úroveň 2 z 5">
+          <div className="flex gap-1.5" aria-label="Vybraná úroveň 4 z 5">
             {LEVELS.map(({ level }) => (
               <span
                 key={level}
                 className={cx(
                   'tabular grid h-9 w-9 place-items-center rounded-xl border text-sm font-bold',
-                  level === 2 ? 'border-transparent text-white shadow-md' : 'border-line text-ink-faint',
+                  level === 4 ? 'border-transparent bg-ink text-surface shadow-md' : 'border-line text-ink-faint',
                 )}
-                style={level === 2 ? { background: 'var(--color-lv2)' } : undefined}
               >
                 {level}
               </span>
@@ -81,8 +80,8 @@ function HeroCard() {
         </div>
 
         <figure className="mt-5 rounded-2xl bg-canvas px-3 pb-2 pt-3">
-          <svg viewBox="0 0 280 124" className="h-auto w-full" role="img" aria-label="Samostatnost po týdnech: 4, 3, 3, 2. Nižší číslo znamená vyšší zvládnutí, zlepšení proto stoupá.">
-            <rect x="24" y="2" width="248" height="36" rx="6" fill="var(--color-lv1)" fillOpacity="0.08" />
+          <svg viewBox="0 0 280 124" className="h-auto w-full" role="img" aria-label="Samostatnost po týdnech: 2, 3, 3, 4. Vyšší číslo znamená vyšší zvládnutí.">
+            <rect x="24" y="2" width="248" height="36" rx="6" fill="var(--color-lv5)" fillOpacity="0.08" />
             {[1, 2, 3, 4, 5].map((l) => (
               <g key={l}>
                 <line x1="24" x2="272" y1={y(l)} y2={y(l)} stroke="var(--color-line)" strokeWidth="1" />
@@ -98,7 +97,7 @@ function HeroCard() {
             {weeks.map((_, i) => <span key={i}>{i + 1}. týden</span>)}
           </figcaption>
         </figure>
-        <p className="mt-2 text-xs text-ink-faint">4 → 3 → 3 → 2: nižší číslo znamená vyšší zvládnutí, proto zlepšení stoupá.</p>
+        <p className="mt-2 text-xs text-ink-faint">2 → 3 → 3 → 4: z „s výraznou pomocí“ na „zvládá samostatně“.</p>
 
         <div className="mt-4 rounded-2xl border border-line p-3 text-sm">
           <span className="font-semibold text-sea-700">Další krok:</span> Samostatně vypočítat průměr pěti čísel.
@@ -211,7 +210,7 @@ export default function Landing() {
             {LEVELS.map((l) => (
               <li key={l.level} className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 sm:flex-col sm:items-start sm:gap-2">
                 <span className="tabular grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style={{ background: `var(--color-lv${l.level})` }}>{l.level}</span>
-                <span className="text-sm leading-snug">{l.text}</span>
+                <span className="text-sm leading-snug"><strong>{l.name}</strong><span className="block text-ink-soft">{l.desc}</span></span>
               </li>
             ))}
           </ul>

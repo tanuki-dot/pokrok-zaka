@@ -38,12 +38,12 @@
   --color-orange: #a2531b;
   --color-orange-wash: #fdeee2;
 
-  /* Úrovně 1–5: 1 = nejvyšší zvládnutí */
-  --color-lv1: #1f9d55;
-  --color-lv2: #6aa83a;
+  /* Úrovně 1–5: 1 = nejnižší (zatím nezvládá), 5 = nejvyšší (samostatně a jistě) */
+  --color-lv1: #c8506a;
+  --color-lv2: #e07b2a;
   --color-lv3: #d4a017;
-  --color-lv4: #e07b2a;
-  --color-lv5: #c8506a;
+  --color-lv4: #6aa83a;
+  --color-lv5: #1f9d55;
 }
 
 :root { color-scheme: light; }
@@ -81,11 +81,11 @@
     --color-orange: #f2a66a;
     --color-orange-wash: #33220f;
 
-    --color-lv1: #27a862;
-    --color-lv2: #6fae3e;
+    --color-lv1: #cf5873;
+    --color-lv2: #df7d2e;
     --color-lv3: #c99a17;
-    --color-lv4: #df7d2e;
-    --color-lv5: #cf5873;
+    --color-lv4: #6fae3e;
+    --color-lv5: #27a862;
   }
 }
 

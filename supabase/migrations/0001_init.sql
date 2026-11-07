@@ -23,7 +23,8 @@ create table profiles (
 create table classes (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references schools,
-  name text not null
+  name text not null,
+  self_wording text not null default 'standard' check (self_wording in ('standard', 'mladsi'))
 );
 
 create table class_teachers (
@@ -70,18 +71,23 @@ create table assessments (
   teacher_id uuid not null references profiles default auth.uid(),
   date date not null default current_date,
   topic text not null default '',
-  goal text not null default '',
-  success_criterion text not null default '',
-  fb_good text not null default '',
+  goal text not null default '',                          -- vzdělávací cíl hodiny
+  goal_status text check (goal_status in ('splneno', 'castecne', 'nesplneno')),
+  skills text[] not null default '{}',                    -- dovednosti vybrané pro hodinu
+  fb_good text not null default '',                       -- slovní zpětná vazba je nepovinná
   fb_todo text not null default '',
   fb_next text not null default '',
   swot_s text not null default '',
   swot_w text not null default '',
   swot_o text not null default '',
   swot_t text not null default '',
+  swot_rec text not null default '',                      -- doporučení pro další rozvoj
   swot_proposed boolean not null default false,
+  formative text not null default '',                     -- formativní hodnocení žáka
   next_goal text not null default '',
-  self_code text unique,           -- jednorázový kód pro sebehodnocení (QR)
+  self_code text unique,                                  -- jednorázový kód pro sebehodnocení (QR)
+  self_code_expires timestamptz,
+  self_code_correction boolean not null default false,    -- kód pro řízenou opravu odpovědí
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -89,18 +95,23 @@ create table assessments (
 create table assessment_scores (
   assessment_id uuid references assessments on delete cascade,
   criterion_id text references criteria on delete cascade,
-  level smallint not null check (level between 1 and 5),  -- 1 = nejvyšší zvládnutí
+  level smallint not null check (level between 1 and 5),  -- 1 = nejnižší, 5 = nejvyšší zvládnutí; chybí = nehodnoceno
   primary key (assessment_id, criterion_id)
 );
 
+-- Univerzální dotazník (dotaznik.docx). Odpovědi se nepřevádí na známku.
 create table self_assessments (
   id uuid primary key default gen_random_uuid(),
   assessment_id uuid not null unique references assessments on delete cascade,
-  learned text not null default '',
-  went_well text not null default '',
-  struggle text not null default '',
-  need_help text not null default '',
-  next_want text not null default '',
+  understanding smallint not null check (understanding between 1 and 3),  -- 1. porozumění (3 = rozumím a dokážu použít)
+  work smallint not null check (work between 1 and 3),                    -- 2. práce (3 = samostatně)
+  went_well text[] not null default '{}',                                 -- 3. co se povedlo (více možností)
+  improve text[] not null default '{}' check (                            -- 4. co zlepšit; „nic“ jen samostatně
+    not ('nic' = any(improve)) or cardinality(improve) = 1
+  ),
+  goal_met text not null check (goal_met in ('ano', 'castecne', 'zatimne')), -- 5. splnění cíle
+  next_wish text not null default '' check (char_length(next_wish) <= 500), -- 6. nepovinné
+  corrections smallint not null default 0,
   submitted_at timestamptz not null default now()
 );
 
@@ -201,16 +212,23 @@ create policy my_phrases on phrases for all using (teacher_id = auth.uid());
 -- ─── Sebehodnocení žáka bez účtu: jednorázový kód ───────────────────────────
 -- Volá se anonymně (anon key). Kód po odevzdání zanikne.
 create or replace function submit_self_assessment(
-  p_code text, p_learned text, p_went_well text, p_struggle text, p_need_help text, p_next_want text
+  p_code text, p_understanding smallint, p_work smallint, p_went_well text[], p_improve text[], p_goal_met text, p_next_wish text
 ) returns boolean language plpgsql security definer as $$
-declare a_id uuid;
+declare a_id uuid; is_fix boolean; existing boolean;
 begin
-  update assessments set self_code = null where self_code = upper(p_code) returning id into a_id;
+  -- Kód musí platit, patří k jedinému hodnocení a po použití zanikne (žádné duplicitní odeslání).
+  select id, self_code_correction into a_id, is_fix from assessments
+    where self_code = upper(p_code) and (self_code_expires is null or self_code_expires > now())
+    for update;
   if a_id is null then return false; end if;
-  insert into self_assessments (assessment_id, learned, went_well, struggle, need_help, next_want)
-  values (a_id, p_learned, p_went_well, p_struggle, p_need_help, p_next_want)
-  on conflict (assessment_id) do update set learned = excluded.learned, went_well = excluded.went_well,
-    struggle = excluded.struggle, need_help = excluded.need_help, next_want = excluded.next_want, submitted_at = now();
+  select exists(select 1 from self_assessments where assessment_id = a_id) into existing;
+  if existing and not is_fix then return false; end if;
+  update assessments set self_code = null, self_code_expires = null, self_code_correction = false where id = a_id;
+  insert into self_assessments (assessment_id, understanding, work, went_well, improve, goal_met, next_wish)
+  values (a_id, p_understanding, p_work, p_went_well, p_improve, p_goal_met, left(p_next_wish, 500))
+  on conflict (assessment_id) do update set understanding = excluded.understanding, work = excluded.work,
+    went_well = excluded.went_well, improve = excluded.improve, goal_met = excluded.goal_met,
+    next_wish = excluded.next_wish, corrections = self_assessments.corrections + 1, submitted_at = now();
   return true;
 end $$;
 grant execute on function submit_self_assessment to anon;

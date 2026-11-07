@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, GraduationCap, LayoutDashboard, Menu, RotateCcw,
-  CalendarClock, Clock, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X,
+  MessageSquareHeart, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X,
 } from 'lucide-react'
 import { resetDemo, setRole } from '../lib/store'
 import { setSelection, switchSchoolType } from '../lib/selection'
@@ -10,8 +10,6 @@ import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
 import { setTheme, useTheme, type ThemePref } from '../lib/theme'
 import { openPrivacy } from '../lib/privacy'
-import { selectLesson, useCurrentLesson } from '../lib/useLesson'
-import { STATUS_LABEL } from '../lib/timetable'
 
 const TEACHER_NAV = [
   { to: '/prehled', label: 'Přehled', icon: LayoutDashboard },
@@ -19,7 +17,7 @@ const TEACHER_NAV = [
   { to: '/zaci', label: 'Žáci a pokrok', icon: GraduationCap },
   { to: '/trida', label: 'Přehled třídy', icon: BarChart3 },
   { to: '/souhrny', label: 'Souhrny', icon: FileText },
-  { to: '/rozvrh', label: 'Rozvrh', icon: CalendarClock },
+  { to: '/sebehodnoceni-zaku', label: 'Sebehodnocení', icon: MessageSquareHeart },
   { to: '/tridy', label: 'Třídy a žáci', icon: Users },
   { to: '/kriteria', label: 'Kritéria a věty', icon: SlidersHorizontal },
   { to: '/export', label: 'Export dat', icon: Download },
@@ -32,11 +30,6 @@ export function Layout({ children }: { children: ReactNode }) {
   const nav = useNavigate()
   const role = db.settings.role
   const items = role === 'ucitel' ? TEACHER_NAV : MGMT_NAV
-  const lesson = useCurrentLesson(db, role === 'ucitel')
-  const lessonEntry = lesson?.entry
-  const lessonClass = lessonEntry && db.classes.find((c) => c.id === lessonEntry.classId)
-  const lessonSubj = lessonEntry && db.subjects.find((p) => p.id === lessonEntry.subjectId)
-  const onLesson = !!lessonEntry && cls?.id === lessonEntry.classId && subj?.id === lessonEntry.subjectId
   const [confirmReset, setConfirmReset] = useState(false)
   const theme = useTheme()
 
@@ -190,29 +183,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </Select>
-              {lesson && (
-                <div className="flex min-w-0 items-center gap-2" role="status">
-                  <span
-                    className={cx(
-                      'inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold',
-                      lessonClass && lessonSubj ? 'bg-brand-50 text-brand-700' : 'bg-muted text-ink-soft',
-                    )}
-                    title={`${lesson.bell.period}. hodina ${lesson.bell.start}–${lesson.bell.end}`}
-                  >
-                    <Clock size={15} className="shrink-0" />
-                    <span className="truncate">
-                      {STATUS_LABEL[lesson.status]}: {lesson.bell.period}. hod
-                      {lessonClass && lessonSubj ? ` · ${lessonClass.name} ${lessonSubj.name}${lessonEntry?.room ? ` · ${lessonEntry.room}` : ''}` : ' · bez rozvrhu'}
-                    </span>
-                  </span>
-                  {lessonEntry && lessonClass && lessonSubj && !onLesson && (
-                    <button onClick={() => selectLesson(db, lessonEntry)} className="whitespace-nowrap text-sm font-semibold text-sea-600 hover:underline">
-                      Přepnout
-                    </button>
-                  )}
-                </div>
-              )}
-              <span className="ml-auto hidden text-sm text-ink-faint xl:inline">
+              <span className="ml-auto hidden text-sm text-ink-faint md:inline">
                 {db.schools.find((s) => s.id === cls?.schoolId)?.name}
               </span>
             </div>

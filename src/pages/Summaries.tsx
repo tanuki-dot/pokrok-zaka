@@ -76,7 +76,7 @@ export default function Summaries() {
         subtitle="Týdenní, měsíční a pololetní přehledy vznikají jen z uložených záznamů. Aplikace navrhne slovní hodnocení, vy ho upravíte, schválíte a vytisknete."
       />
       <div className="grid gap-4 xl:grid-cols-[380px_1fr]">
-        <Card title="Vytvořit návrh" className="xl:self-start">
+        <Card title="Vytvořit návrh" className="min-w-0 xl:self-start">
           <div className="flex flex-col gap-4">
             <Tabs<SummaryKind>
               value={kind}
@@ -109,6 +109,7 @@ export default function Summaries() {
         </Card>
 
         <Card
+          className="min-w-0"
           title={`Souhrny · ${subj.name}`}
           action={
             <Tabs

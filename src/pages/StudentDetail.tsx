@@ -4,7 +4,8 @@ import { ArrowLeft, ClipboardPen, FileText, Pencil, UserCheck } from 'lucide-rea
 import { useCtx } from '../lib/useCtx'
 import { setSelection } from '../lib/selection'
 import { criteriaFor, setGoalStatus } from '../lib/store'
-import { criterionSeries, LEVELS, studentAssessments, trendWord, weeklyLevels } from '../lib/analysis'
+import { criterionSeries, GOAL_STATUS_LABEL, LEVELS, studentAssessments, trendWord, weeklyLevels } from '../lib/analysis'
+import { SelfHistory } from '../components/SelfHistory'
 import { fmt, fmtShort, KIND_LABEL } from '../lib/dates'
 import type { GoalStatus } from '../lib/types'
 import { Button, Card, cx, Empty, LevelBadge, PageHeader, Pill } from '../components/ui'
@@ -77,7 +78,7 @@ export default function StudentDetail() {
             {activeSeries.length > 1 && (
               <p className="mt-2 text-sm text-ink-soft">
                 <strong className="text-ink">{active?.name}: {activeSeries.map((p) => p.level).join(' → ')}</strong>
-                {' '}= {trendWord(activeSeries[0].level, activeSeries.at(-1)!.level)}. Nižší číslo znamená vyšší zvládnutí, proto je osa otočená a zlepšení jde nahoru.
+                {' '}= {trendWord(activeSeries[0].level, activeSeries.at(-1)!.level)}. Škála 1 (nejnižší) – 5 (nejvyšší), zlepšení jde nahoru.
               </p>
             )}
           </Card>
@@ -93,10 +94,10 @@ export default function StudentDetail() {
                     <LevelBadge level={last.level} />
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold">{c.name}</div>
-                      <div className="truncate text-xs text-ink-faint">{LEVELS[last.level - 1].text}</div>
+                      <div className="truncate text-xs text-ink-faint">{LEVELS[last.level - 1].name}</div>
                     </div>
                     {s.length > 1 && (
-                      <span className={cx('tabular text-xs font-semibold', last.level < first.level ? 'text-good' : last.level > first.level ? 'text-bad' : 'text-ink-faint')}>
+                      <span className={cx('tabular text-xs font-semibold', last.level > first.level ? 'text-good' : last.level < first.level ? 'text-bad' : 'text-ink-faint')}>
                         {first.level} → {last.level}
                       </span>
                     )}
@@ -159,6 +160,8 @@ export default function StudentDetail() {
             )}
           </Card>
 
+          <SelfHistory db={db} assessments={as} className="xl:col-span-2" />
+
           <Card title="Časová osa záznamů" className="xl:col-span-2">
             <ol className="relative flex flex-col gap-4 border-l-2 border-line pl-5">
               {[...as].reverse().map((a) => {
@@ -167,11 +170,13 @@ export default function StudentDetail() {
                   <li key={a.id} className="relative">
                     <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-surface bg-sea-500" />
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="tabular text-sm font-semibold text-ink-faint">{fmt(a.date)}{a.lesson != null && ` · ${a.lesson}. hod`}</span>
+                      <span className="tabular text-sm font-semibold text-ink-faint">{fmt(a.date)}</span>
                       <span className="font-bold">{a.topic || 'Bez tématu'}</span>
+                      {a.goalStatus && <Pill tone={a.goalStatus === 'splneno' ? 'good' : a.goalStatus === 'castecne' ? 'warn' : 'bad'}>cíl: {GOAL_STATUS_LABEL[a.goalStatus].toLowerCase()}</Pill>}
                       {self && <Pill tone="brand"><UserCheck size={12} /> sebehodnocení</Pill>}
                       <Link to={`/hodnoceni/${a.id}`} className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-sea-600"><Pencil size={14} /> Otevřít a opravit</Link>
                     </div>
+                    {a.goal && <div className="mt-1 text-sm text-ink-soft"><span className="text-ink-faint">Cíl:</span> {a.goal}</div>}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {Object.entries(a.scores).map(([cid, l]) => (
                         <span key={cid} className="inline-flex items-center gap-1.5 rounded-lg border border-line py-0.5 pl-0.5 pr-2 text-xs">

@@ -1,13 +1,13 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertCircle, ArrowRight, CalendarClock, ClipboardPen, FileClock, LayoutDashboard, MessageSquareText, Target, UserCheck } from 'lucide-react'
+import { AlertCircle, ArrowRight, ClipboardPen, HeartHandshake, FileClock, LayoutDashboard, MessageSquareText, Target, UserCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useCtx } from '../lib/useCtx'
 import { addDays, fmtShort, relative, today, weekStart } from '../lib/dates'
 import { Button, Card, Pill, PageHeader } from '../components/ui'
 import { fullName } from '../lib/util'
-import { DAYS, dayIndex, lessonAt, todaysLessons } from '../lib/timetable'
-import { selectLesson, useNow } from '../lib/useLesson'
+import { supportReasons } from '../lib/analysis'
+import { periodFor } from '../lib/dates'
 import { TOOLTIP_STYLE } from '../components/chartStyle'
 
 function Stat({ icon, value, label, note, tone }: { icon: ReactNode; value: ReactNode; label: string; note?: ReactNode; tone: string }) {
@@ -39,10 +39,19 @@ export default function Dashboard() {
   const selfThisWeek = db.selfAssessments.filter((s) => thisWeek.some((a) => a.id === s.assessmentId))
 
   const missing = students.filter((s) => !thisWeek.some((a) => a.studentId === s.id))
-  const navigate = useNavigate()
-  const now = useNow()
-  const lessons = todaysLessons(db, now)
-  const current = lessonAt(db, now)
+  const support = students
+    .map((st) => ({ st, reasons: subj ? supportReasons(db, st.id, subj.id) : [] }))
+    .filter((x) => x.reasons.length)
+    .sort((a, b) => b.reasons.reduce((n, r) => n + r.severity, 0) - a.reasons.reduce((n, r) => n + r.severity, 0))
+  const reached = goals.filter((g) => g.status === 'splneny').sort((a, b) => b.setOn.localeCompare(a.setOn))
+  const unmet = goals.filter((g) => g.status === 'nesplneny').sort((a, b) => b.setOn.localeCompare(a.setOn))
+  const month = periodFor('mesic', t)
+  const monthLessons = subjA.filter((a) => a.date >= month.from && a.date <= month.to && a.goalStatus)
+  const lessonCount = (s: string) => monthLessons.filter((a) => a.goalStatus === s).length
+  const sName = (id: string) => {
+    const s = db.students.find((x) => x.id === id)
+    return s ? fullName(s) : '–'
+  }
 
   const weeks = Array.from({ length: 8 }, (_, i) => addDays(mon, -7 * (7 - i)))
   const activity = weeks.map((w) => ({
@@ -51,9 +60,9 @@ export default function Dashboard() {
   }))
 
   const goalData = [
-    { name: 'Splněno', value: goals.filter((g) => g.status === 'splneny').length, color: 'var(--color-lv1)' },
+    { name: 'Splněno', value: goals.filter((g) => g.status === 'splneny').length, color: 'var(--color-good)' },
     { name: 'Rozpracováno', value: open.length, color: 'var(--color-sea-500)' },
-    { name: 'Zatím nesplněno', value: goals.filter((g) => g.status === 'nesplneny').length, color: 'var(--color-lv4)' },
+    { name: 'Zatím nesplněno', value: goals.filter((g) => g.status === 'nesplneny').length, color: 'var(--color-orange)' },
   ]
   const goalTotal = goalData.reduce((a, b) => a + b.value, 0)
 
@@ -73,7 +82,7 @@ export default function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat icon={<ClipboardPen size={24} />} tone="var(--color-sea-500)" value={thisWeek.length} label="Záznamy tento týden" note={`minulý týden ${lastWeek.length}`} />
         <Stat icon={<MessageSquareText size={24} />} tone="#7c4ddb" value={thisWeek.length ? `${Math.round((withFb.length / thisWeek.length) * 100)} %` : '–'} label="Se zpětnou vazbou" note="co se povedlo + další krok" />
-        <Stat icon={<Target size={24} />} tone="var(--color-lv1)" value={open.length} label="Rozpracované cíle" note={`z ${goals.length} stanovených`} />
+        <Stat icon={<Target size={24} />} tone="var(--color-good)" value={open.length} label="Rozpracované cíle" note={`z ${goals.length} stanovených`} />
         <Stat icon={<UserCheck size={24} />} tone="var(--color-brand-500)" value={selfThisWeek.length} label="Sebehodnocení" note="odevzdaná tento týden" />
       </div>
 
@@ -96,48 +105,25 @@ export default function Dashboard() {
 
       <Card
         className="mt-5"
-        title={<span className="inline-flex items-center gap-2"><CalendarClock size={18} className="text-brand-500" /> Dnešní rozvrh</span>}
-        action={<Link to="/rozvrh" className="text-sm font-semibold text-sea-600">Upravit rozvrh <ArrowRight className="inline" size={14} /></Link>}
+        title={<span className="inline-flex items-center gap-2"><HeartHandshake size={18} className="text-brand-500" /> Žáci, kteří potřebují větší podporu</span>}
+        action={<span className="text-xs text-ink-faint">{subj?.name} · podle posledních záznamů</span>}
       >
-        {dayIndex(now) > 4 ? (
-          <p className="text-sm text-ink-faint">Dnes je víkend. Rozvrh je nastavený na pondělí až pátek.</p>
-        ) : lessons.length === 0 ? (
-          <p className="text-sm text-ink-faint">
-            Na {DAYS[dayIndex(now)].toLowerCase()} nemáte v rozvrhu žádnou hodinu. Třídu a předmět vyberete nahoře ručně, nebo si <Link to="/rozvrh" className="font-semibold text-sea-600">vyplňte rozvrh</Link>.
-          </p>
+        {support.length === 0 ? (
+          <p className="text-sm text-ink-faint">Podle záznamů teď nikdo nepotřebuje zvláštní podporu.</p>
         ) : (
-          <ul className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-            {lessons.map(({ entry, bell }) => {
-              const c = db.classes.find((x) => x.id === entry.classId)
-              const p = db.subjects.find((x) => x.id === entry.subjectId)
-              const isNow = current?.bell.period === entry.period
-              const past = bell ? bell.end < `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` && !isNow : false
-              return (
-                <li key={entry.id} className="snap-start">
-                  <div
-                    className={`flex w-[190px] flex-col gap-2 rounded-2xl border p-3.5 ${isNow ? 'border-brand-500 bg-brand-50' : 'border-line'} ${past ? 'opacity-60' : ''}`}
-                  >
-                    <div className="flex items-center justify-between text-xs font-semibold text-ink-faint">
-                      <span className="tabular">{entry.period}. hod · {bell?.start}–{bell?.end}</span>
-                      {isNow && <span className="text-brand-700">teď</span>}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate font-bold">{c?.name ?? '?'}</div>
-                      <div className="truncate text-sm text-ink-soft">{p?.name ?? '?'}</div>
-                      {entry.room && <div className="tabular text-xs text-ink-faint">učebna {entry.room}</div>}
-                    </div>
-                    <button
-                      onClick={() => { selectLesson(db, entry); navigate('/hodnoceni/nove', { state: { carry: { lesson: entry.period } } }) }}
-                      className="mt-1 inline-flex items-center gap-1 self-start text-sm font-semibold text-sea-600 hover:underline"
-                    >
-                      Hodnotit <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
+          <ul className="divide-y divide-line">
+            {support.slice(0, 6).map(({ st, reasons }) => (
+              <li key={st.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
+                <Link to={`/zaci/${st.id}`} className="min-w-[150px] font-semibold hover:text-sea-600">{fullName(st)}</Link>
+                <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                  {reasons.map((r) => <Pill key={r.text} tone={r.severity === 2 ? 'bad' : 'warn'} className="whitespace-normal">{r.text}</Pill>)}
+                </span>
+                <Link to={`/hodnoceni/nove?zak=${st.id}`} className="shrink-0 text-sm font-semibold text-sea-600">Ohodnotit</Link>
+              </li>
+            ))}
           </ul>
         )}
+        {support.length > 6 && <p className="mt-2 text-xs text-ink-faint">A dalších {support.length - 6} žáků – celý přehled je v Přehledu třídy.</p>}
       </Card>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -189,6 +175,39 @@ export default function Dashboard() {
           )}
         </Card>
       </div>
+
+      <Card title="Přehled cílů" className="mt-5" action={<span className="text-xs text-ink-faint">{subj?.name}</span>}>
+        <p className="mb-4 text-sm text-ink-soft">
+          Vzdělávací cíle hodin za {month.label}:{' '}
+          {monthLessons.length ? (
+            <>
+              <strong className="text-good">splněno {lessonCount('splneno')}</strong> · <strong className="text-warn">částečně {lessonCount('castecne')}</strong> ·{' '}
+              <strong className="text-bad">nesplněno {lessonCount('nesplneno')}</strong>
+            </>
+          ) : 'zatím neoznačeno.'}
+        </p>
+        <div className="grid gap-5 md:grid-cols-2">
+          {([['Dosažené cíle', reached, 'good'], ['Nesplněné cíle', unmet, 'bad']] as const).map(([title, list, tone]) => (
+            <div key={title} className="min-w-0">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">{title} <Pill tone={tone}>{list.length}</Pill></h3>
+              {list.length === 0 ? (
+                <p className="text-sm text-ink-faint">Žádné.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {list.slice(0, 5).map((g) => (
+                    <li key={g.id} className="rounded-xl border border-line px-3 py-2 text-sm">
+                      <Link to={`/zaci/${g.studentId}`} className="font-semibold hover:text-sea-600">{sName(g.studentId)}</Link>
+                      <span className="text-ink-faint"> · {fmtShort(g.setOn)}</span>
+                      <div className="text-ink-soft">{g.text}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {list.length > 5 && <p className="mt-1.5 text-xs text-ink-faint">a dalších {list.length - 5}</p>}
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <Card title="Souhrny ke schválení" action={<Link to="/souhrny" className="text-sm font-semibold text-sea-600">Všechny souhrny <ArrowRight className="inline" size={14} /></Link>}>

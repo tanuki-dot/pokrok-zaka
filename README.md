@@ -1,6 +1,6 @@
 # Pokrok žáka
 
-Webová aplikace pro ZŠ a SŠ **vytvořená pomocí claude**, která propojuje formativní hodnocení, SWOT analýzu a sledování individuálního pokroku žáků. Postavená podle zadání `formativní hodnocení.docx`.
+Webová aplikace pro ZŠ a SŠ **vytvořená pomocí claude**, která propojuje formativní hodnocení, SWOT analýzu a sledování individuálního pokroku žáků. Postavená podle zadání `formativní hodnocení.docx` a úprav v `pokrok_oprava.docx` a `dotaznik.docx`.
 
 > Hlavní zásada: učitel hodnotí konkrétní dovednost, poskytuje zpětnou vazbu a stanovuje další cíl. Aplikace zaznamenává vývoj, ale nenahrazuje pedagogické rozhodnutí.
 
@@ -18,26 +18,31 @@ Aplikace běží v **demo režimu**: obsahuje fiktivní třídy ZŠ (7.A) i SŠ 
 
 Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a PDF jsou vždy světlé.
 
-## Co aplikace umí (podle kroků v zadání)
+## Co aplikace umí
 
-| Krok | Kde v aplikaci |
+| Oblast | Kde v aplikaci |
 |---|---|
-| 1 – Třída, předmět, žáci (ručně i z Excelu) | **Třídy a žáci** (+ přepínač ZŠ/SŠ, třída, předmět v horní liště) |
-| 2 – Co hodnotit: 7 základních oblastí + vlastní kritéria | **Kritéria a věty** |
-| 3 – Hodnocení 1–5 jedním kliknutím | **Nové hodnocení**, krok 3 |
-| 4 – Tři otázky zpětné vazby + banka vět | **Nové hodnocení**, krok 4 / **Kritéria a věty** |
-| 5 – Sebehodnocení žáka (odkaz / QR, jednorázový kód, bez účtu) | **Nové hodnocení**, krok 5 → stránka pro žáka |
-| 6 – SWOT, návrh z hodnocení, překážky jen ověřené | **Nové hodnocení**, krok 6 |
-| 7 – Uložení, pozdější oprava, další cíl | **Nové hodnocení**, krok 7 / časová osa v detailu žáka |
-| 8 – Změny v čase, graf (obrácená osa: 1 = nahoře) | **Žáci a pokrok** → detail žáka |
-| 9 – Týdenní / měsíční / pololetní souhrn | **Souhrny** |
-| 10 – Kontrola, schválení, tisk / PDF, export | **Souhrny** → schválit → Tisk / PDF; **Export dat** (xlsx, csv, záloha) |
-| Rozvrh hodin s učebnami: třída a předmět se vyberou podle času (jde i bez rozvrhu) | **Rozvrh**, štítek „Teď: 3. hod“ v horní liště, karta „Dnešní rozvrh“ v přehledu |
-| Přehled třídy a vedení školy | **Přehled třídy**; přepnout „Přihlášen jako → Vedení školy“ |
+| Třída, předmět, žáci (ručně i z Excelu), formulace dotazníku podle věku | **Třídy a žáci** (+ přepínač ZŠ/SŠ, třída, předmět v horní liště) |
+| Co hodnotit: 7 základních oblastí + vlastní kritéria, banka vět | **Kritéria a věty** |
+| Vzdělávací cíl hodiny, jeho splnění (splněno / částečně / nesplněno), návrh cíle z předchozích záznamů | **Nové hodnocení**, krok 2 |
+| Výběr dovedností pro hodinu a hodnocení 1–5 (1 = nejnižší, 5 = nejvyšší, nevybráno = nehodnoceno) | **Nové hodnocení**, krok 3 |
+| Slovní zpětná vazba (nepovinná) | **Nové hodnocení**, krok 4 |
+| Sebehodnocení žáka: univerzální dotazník (6 otázek), QR / odkaz s platností 24 h, jednorázové odeslání, řízená oprava, porovnání s hodnocením učitele | **Nové hodnocení**, krok 5 → stránka pro žáka |
+| SWOT, doporučení pro rozvoj a formativní hodnocení – automaticky z hodnocení, sebehodnocení a zpětné vazby, vše upravitelné | **Nové hodnocení**, krok 6 |
+| Poslední hodnocení vedle nového, další cíl | **Nové hodnocení** (pravý sloupec, krok 7) |
+| Žáci, kteří potřebují větší podporu; dosažené a nesplněné cíle | **Přehled** |
+| Vývoj v čase (graf, zlepšení jde nahoru), historie sebehodnocení | **Žáci a pokrok** → detail žáka |
+| Výsledky sebehodnocení podle třídy, předmětu a období (subjektivní pohled žáka) | **Sebehodnocení** |
+| Týdenní / měsíční / pololetní souhrn, schválení, tisk / PDF | **Souhrny** |
+| Export (xlsx, csv, záloha), přehled třídy, pohled vedení školy | **Export dat**, **Přehled třídy**, „Přihlášen jako → Vedení školy“ |
 
-### Jak vznikají souhrny a návrhy SWOT
+### Jak vznikají souhrny, SWOT a formativní hodnocení
 
-Deterministicky, bez AI: `src/lib/analysis.ts` skládá věty jen z uložených úrovní, zpětné vazby, cílů a sebehodnocení. Každá věta nese odkazy na záznamy, ze kterých vznikla (v editoru jsou vidět a jde na ně kliknout). Překážky (T) se nikdy nevyplňují automaticky. Tisknout jde jen schválená verze; úprava schváleného souhrnu založí novou verzi.
+Deterministicky, bez AI: `src/lib/analysis.ts` skládá věty jen z uložených úrovní, splnění cílů, zpětné vazby a sebehodnocení. Každá věta souhrnu nese odkazy na záznamy, ze kterých vznikla. Překážky (T) vycházejí jen z dat (opakovaně nízká úroveň, nesoulad sebehodnocení s hodnocením učitele, opakovaně nesplněný cíl, potíže, které uvedl sám žák), nikdy z domněnek o osobní situaci žáka. Tisknout jde jen schválená verze souhrnu.
+
+### Změna škály (verze 0.0.5)
+
+Do verze 0.0.4 platilo 1 = nejvyšší zvládnutí. Od 0.0.5 je 1 = nejnižší a 5 = nejvyšší. Uložená data se při prvním otevření převedou (`src/lib/migrate.ts`): úroveň = 6 − stará, přepočítají se i čísla ve větách souhrnů, které vytvořila aplikace. Věty a komentáře doplněné učitelem se nemění. Starší sebehodnocení (volné odpovědi) zůstávají a zobrazují se ve starém formátu. Rozvrh a číslo hodiny byly z aplikace odstraněny.
 
 ## Struktura
 
@@ -45,22 +50,20 @@ Deterministicky, bez AI: `src/lib/analysis.ts` skládá věty jen z uložených 
 src/lib/types.ts      datový model
 src/lib/store.ts      akce nad daty (demo: localStorage, místo pro Supabase)
 src/lib/seed.ts       demo data (fiktivní žáci)
-src/lib/analysis.ts   trendy, souhrny, návrh SWOT
+src/lib/levels.ts     škála 1–5
+src/lib/analysis.ts   trendy, souhrny, SWOT, formativní hodnocení, doporučení, návrh cíle
+src/lib/questionnaire.ts  univerzální sebehodnoticí dotazník
+src/lib/migrate.ts    převod starších dat (obrácená škála)
 src/lib/exporter.ts   export xlsx / csv
 src/pages/*           obrazovky
-src/lib/timetable.ts  zvonění, rozvrh, výpočet aktuální hodiny
-supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení přes kód, agregace pro vedení, rozvrh)
+supabase/migrations   schéma pro ostrý provoz (RLS, audit, sebehodnocení přes kód s platností, agregace pro vedení)
 ```
 
 ## Na ostrý provoz (zatím není hotové)
 
-- Přepojit `store.ts` na Supabase (schéma je v `supabase/migrations/0001_init.sql`) a přidat přihlášení učitelů.
+- Přepojit `store.ts` na Supabase (schéma je v `supabase/migrations/0001_init.sql`) a přidat přihlášení učitelů a přístupová oprávnění. Teprve pak sebehodnocení funguje z telefonu žáka a žák vidí jen své odpovědi i mezi zařízeními (v demu jsou data jen v jednom prohlížeči).
 - Hosting v EU, RLS na všech tabulkách (připraveno ve schématu), audit log (triggery).
 - PDF teď vzniká přes tiskový dialog prohlížeče („Uložit jako PDF“). Pro jednotný výstup lze později generovat na serveru.
-
-### Rozvrh a výběr hodiny podle času
-
-Podle zvonění aplikace pozná, která hodina právě probíhá (10 min před začátkem až 15 min po konci). Pokud je hodina v rozvrhu, vybere se její třída a předmět automaticky, ale jen jednou za hodinu, takže ruční výběr učitele nepřebije. Tlačítkem „Přepnout“ se k hodině z rozvrhu vrátíte. Bez rozvrhu se třída a předmět vybírají ručně a ve formuláři se podle času předvyplní jen číslo hodiny (jde změnit nebo zrušit).
 
 ## Soukromí
 

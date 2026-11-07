@@ -15,7 +15,7 @@ import Management from './pages/Management'
 import SelfAssessmentPage from './pages/SelfAssessment'
 import PrintSummary from './pages/PrintSummary'
 import Landing from './pages/Landing'
-import Timetable from './pages/Timetable'
+import SelfResults from './pages/SelfResults'
 
 export default function App() {
   const db = useDB()
@@ -56,7 +56,7 @@ export default function App() {
         <Route path="/trida" element={<ClassOverview />} />
         <Route path="/souhrny" element={<Summaries />} />
         <Route path="/souhrny/:id" element={<SummaryEditor />} />
-        <Route path="/rozvrh" element={<Timetable />} />
+        <Route path="/sebehodnoceni-zaku" element={<SelfResults />} />
         <Route path="/tridy" element={<Classes />} />
         <Route path="/kriteria" element={<CriteriaPage />} />
         <Route path="/export" element={<ExportPage />} />

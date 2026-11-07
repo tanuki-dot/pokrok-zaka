@@ -2,7 +2,9 @@ import { useState } from 'react'
 import * as XLSX from 'xlsx'
 import { ArrowLeftRight, FileSpreadsheet, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
-import { addClass, addStudents, addSubject, removeStudent, removeSubject } from '../lib/store'
+import { addClass, addStudents, addSubject, removeStudent, removeSubject, setClassWording } from '../lib/store'
+import { QUESTIONS, Q_UNDERSTANDING, WORDING_LABEL } from '../lib/questionnaire'
+import type { SelfWording } from '../lib/types'
 import { setSelection } from '../lib/selection'
 import { Button, Card, Empty, Field, Input, PageHeader, Pill, Textarea } from '../components/ui'
 
@@ -190,6 +192,30 @@ export default function Classes() {
                 )}
               </Card>
             </div>
+
+            <Card title="Sebehodnocení žáků – formulace">
+              <p className="mb-3 text-sm text-ink-soft">
+                Dotazník je pro všechny předměty stejný. Pro mladší žáky můžete u třídy zvolit jednodušší slova.
+              </p>
+              <div className="grid gap-3 md:grid-cols-2" role="radiogroup" aria-label="Formulace dotazníku">
+                {(['standard', 'mladsi'] as SelfWording[]).map((w) => {
+                  const on = (cls.selfWording ?? 'standard') === w
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setClassWording(cls.id, w)}
+                      className={`rounded-xl border p-3 text-left ${on ? 'border-sea-500 bg-sea-50' : 'border-line hover:border-ink-faint'}`}
+                    >
+                      <div className="font-semibold">{WORDING_LABEL[w]}</div>
+                      <div className="mt-1 text-sm text-ink-soft">„{QUESTIONS.understanding[w]}“ – {Q_UNDERSTANDING[1].label[w]}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </Card>
 
             <Card title={`Žáci ve třídě ${cls.name}`} action={<Pill>{students.length}</Pill>}>
               {students.length === 0 ? (

@@ -1,10 +1,9 @@
 import type {
-  Assessment, AuditEntry, Criterion, DB, Goal, Level, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary,
+  Assessment, AuditEntry, Criterion, DB, Goal, Level, LessonGoalStatus, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary,
 } from './types'
 import { addDays, periodFor, today, weekStart } from './dates'
 import { generateSummary } from './analysis'
 import { uid } from './util'
-import { DEFAULT_BELLS, demoTimetable } from './timetable'
 
 /*
  * Demo režim: fiktivní školy, třídy a žáci (ZŠ i SŠ), aby šlo formativní hodnocení
@@ -35,68 +34,59 @@ const PHRASES: Omit<Phrase, 'id'>[] = [
   { kind: 'next', text: 'Procvičit postup na třech krátkých úlohách.' },
 ]
 
-type Fb = { good: string[]; todo: string[]; next: string[]; goal: string; success: string }
+type Fb = { good: string[]; todo: string[]; next: string[]; goal: string }
 
 const INFO_TOPICS: [string, Fb][] = [
   ['Úvod do tabulkového procesoru', {
     goal: 'Žák se orientuje v prostředí tabulkového procesoru a zapíše data do buněk.',
-    success: 'Samostatně vytvoří list s daty a uloží soubor.',
     good: ['Rychlá orientace v prostředí a správně uložený soubor.', 'Data zapsaná do správných buněk.', 'Správně pojmenovaný list.'],
     todo: ['Potřebuje pomoc s označováním oblastí buněk.', 'Plete si řádky a sloupce při zápisu.', 'Zatím neuloží soubor do správné složky.'],
     next: ['Samostatně založit nový sešit a zapsat tabulku známek.', 'Procvičit označování oblastí myší i klávesnicí.'],
   }],
   ['Formátování tabulky', {
     goal: 'Žák naformátuje tabulku tak, aby byla přehledná.',
-    success: 'Tabulka má záhlaví, ohraničení a správný formát čísel.',
     good: ['Přehledná tabulka se záhlavím a ohraničením.', 'Správně nastavený formát měny.', 'Samostatně sloučené buňky záhlaví.'],
     todo: ['Potřebuje pomoc s formátem čísel.', 'Ohraničení zatím nastavuje jen s návodem.'],
     next: ['Samostatně naformátovat tabulku výdajů podle zadání.', 'Nastavit formát procent bez nápovědy.'],
   }],
   ['Vzorce a odkazy', {
     goal: 'Žák zapíše jednoduchý vzorec s odkazy na buňky.',
-    success: 'Vzorec počítá správně i po změně vstupních dat.',
     good: ['Správně zapsaný vzorec s odkazy na buňky.', 'Vzorec zkopírovaný do dalších řádků bez chyby.'],
     todo: ['Píše do vzorce čísla místo odkazů na buňky.', 'Potřebuje pomoc s kopírováním vzorce.'],
     next: ['Vytvořit vzorec pro součet dvou sloupců a ověřit ho změnou dat.', 'Procvičit kopírování vzorců tažením.'],
   }],
   ['Funkce SUMA a PRŮMĚR', {
     goal: 'Žák vytvoří tabulku a použije funkce SUMA a PRŮMĚR.',
-    success: 'Samostatně vytvoří tabulku a správně vypočítá součet i průměr.',
     good: ['Správně vytvořená tabulka a použitá funkce SUMA.', 'Funkce SUMA použitá samostatně a bez chyby.', 'Správně zvolená oblast pro součet.'],
     todo: ['Potřebuje pomoc s funkcí PRŮMĚR.', 'Do oblasti funkce zahrnuje i záhlaví.', 'Zaměňuje funkci SUMA a PRŮMĚR.'],
     next: ['Samostatně vypočítat průměr pěti čísel.', 'Vypočítat průměrnou známku třídy funkcí PRŮMĚR.'],
   }],
   ['Funkce MIN a MAX', {
     goal: 'Žák použije funkce MIN a MAX při vyhodnocení dat.',
-    success: 'Najde nejmenší a největší hodnotu v tabulce bez nápovědy.',
     good: ['Správně použité funkce MIN a MAX.', 'Samostatně doplněné vyhodnocení tabulky.'],
     todo: ['Potřebuje pomoc s výběrem správné oblasti dat.', 'Zatím si nepamatuje zápis funkce MAX.'],
     next: ['Vyhodnotit tabulku teplot funkcemi MIN, MAX a PRŮMĚR.', 'Použít MIN a MAX v nové tabulce bez návodu.'],
   }],
   ['Grafy', {
     goal: 'Žák vytvoří z tabulky vhodný graf s popisky.',
-    success: 'Graf má název, popisky os a odpovídá datům.',
     good: ['Zvolený vhodný typ grafu a doplněný název.', 'Správně popsané osy grafu.'],
     todo: ['Potřebuje pomoc s výběrem dat pro graf.', 'Graf zatím nemá popisky os.'],
     next: ['Vytvořit sloupcový graf z tabulky výdajů s popisky.', 'Porovnat dva typy grafů a vybrat vhodnější.'],
   }],
   ['Podmíněné formátování', {
     goal: 'Žák použije podmíněné formátování ke zvýraznění hodnot.',
-    success: 'Pravidlo zvýrazní správné buňky.',
     good: ['Správně nastavené pravidlo pro zvýraznění.', 'Samostatně upravené pravidlo podle zadání.'],
     todo: ['Potřebuje pomoc s nastavením podmínky.', 'Pravidlo zatím aplikuje na špatnou oblast.'],
     next: ['Zvýraznit podprůměrné hodnoty pomocí pravidla.', 'Nastavit dvě pravidla v jedné tabulce.'],
   }],
   ['Řazení a filtrování dat', {
     goal: 'Žák seřadí a vyfiltruje data podle zadání.',
-    success: 'Data jsou seřazená bez porušení řádků.',
     good: ['Správně seřazená data podle více sloupců.', 'Samostatně použitý filtr.'],
     todo: ['Při řazení rozdělí řádky – potřebuje kontrolu.', 'Potřebuje pomoc s vlastním filtrem.'],
     next: ['Seřadit seznam podle dvou kritérií a ověřit výsledek.', 'Vyfiltrovat data podle podmínky bez nápovědy.'],
   }],
   ['Práce v Excelu – opakování', {
     goal: 'Žák vytvoří tabulku a použije funkce SUMA, PRŮMĚR, MIN a MAX.',
-    success: 'Samostatně vytvoří tabulku a správně vypočítá výsledky.',
     good: ['Správně vytvořená tabulka a použité funkce SUMA a PRŮMĚR.', 'Všechny čtyři funkce použité bez chyby.', 'Přehledně naformátované výsledky.'],
     todo: ['Potřebuje pomoc s funkcí PRŮMĚR.', 'Zatím potřebuje kontrolu oblasti u funkce MAX.'],
     next: ['Samostatně vypočítat průměr pěti čísel.', 'Připravit vlastní tabulku a vyhodnotit ji všemi funkcemi.'],
@@ -105,31 +95,31 @@ const INFO_TOPICS: [string, Fb][] = [
 
 const MATH_TOPICS: [string, Fb][] = [
   ['Zlomky – krácení a rozšiřování', {
-    goal: 'Žák krátí a rozšiřuje zlomky.', success: 'Správně zkrátí pět zlomků na základní tvar.',
+    goal: 'Žák krátí a rozšiřuje zlomky.',
     good: ['Správně krácené zlomky na základní tvar.', 'Umí vysvětlit, proč se hodnota zlomku nemění.'],
     todo: ['Potřebuje pomoc s hledáním společného dělitele.', 'Zatím nekrátí až na základní tvar.'],
     next: ['Zkrátit pět zlomků a zkontrolovat výsledek.', 'Vysvětlit krácení spolužákovi.'],
   }],
   ['Sčítání a odčítání zlomků', {
-    goal: 'Žák sčítá a odčítá zlomky s různým jmenovatelem.', success: 'Najde společného jmenovatele a výsledek zkrátí.',
+    goal: 'Žák sčítá a odčítá zlomky s různým jmenovatelem.',
     good: ['Správně nalezený společný jmenovatel.', 'Výsledky zkrácené na základní tvar.'],
     todo: ['Sčítá i jmenovatele – potřebuje vrátit k postupu.', 'Potřebuje pomoc s nejmenším společným násobkem.'],
     next: ['Vyřešit tři příklady se zlomky a výsledek ověřit.', 'Procvičit hledání společného jmenovatele.'],
   }],
   ['Násobení a dělení zlomků', {
-    goal: 'Žák násobí a dělí zlomky.', success: 'Správně vypočítá pět příkladů.',
+    goal: 'Žák násobí a dělí zlomky.',
     good: ['Správný postup při násobení zlomků.', 'Dělení převedené na násobení převrácenou hodnotou.'],
     todo: ['Při dělení zapomíná převrátit zlomek.', 'Potřebuje pomoc s krácením před násobením.'],
     next: ['Vyřešit pět příkladů na dělení zlomků.', 'Zkontrolovat výsledky odhadem.'],
   }],
   ['Slovní úlohy se zlomky', {
-    goal: 'Žák řeší slovní úlohy se zlomky.', success: 'Zapíše postup, výpočet i odpověď.',
+    goal: 'Žák řeší slovní úlohy se zlomky.',
     good: ['Správně zapsaný postup i odpověď.', 'Úloha vyřešená samostatně.'],
     todo: ['Potřebuje pomoc s převodem textu na výpočet.', 'Chybí odpověď celou větou.'],
     next: ['Vyřešit dvě slovní úlohy a zapsat odpověď.', 'Podtrhnout v zadání důležité údaje.'],
   }],
   ['Desetinná čísla', {
-    goal: 'Žák převádí zlomky na desetinná čísla.', success: 'Správně převede pět zlomků.',
+    goal: 'Žák převádí zlomky na desetinná čísla.',
     good: ['Správný převod zlomků na desetinná čísla.', 'Umí porovnat desetinná čísla.'],
     todo: ['Plete si řády desetinných míst.', 'Potřebuje pomoc s dělením při převodu.'],
     next: ['Převést pět zlomků a seřadit výsledky.', 'Procvičit porovnávání desetinných čísel.'],
@@ -146,13 +136,7 @@ const SEVEN_A = [
   ['Tomáš', 'Růžička'], ['Veronika', 'Malá'], ['Vojtěch', 'Sýkora'], ['Zuzana', 'Krejčí'],
 ]
 
-const SELF = {
-  learned: ['Naučil/a jsem se používat funkci SUMA.', 'Jak udělat přehlednou tabulku.', 'Jak napsat vzorec s odkazy.', 'Jak krátit zlomky.'],
-  wentWell: ['Tabulka se mi povedla rychle.', 'Graf vypadal dobře.', 'Spočítal/a jsem všechno sám/sama.', 'Krácení zlomků.'],
-  struggle: ['Průměr mi pořád nejde.', 'Nevím, kterou oblast vybrat.', 'Pletu si funkce.', 'Společný jmenovatel.'],
-  needHelp: ['S funkcí PRŮMĚR.', 'S výběrem oblasti dat.', 'S kopírováním vzorců.', 'Se slovními úlohami.'],
-  nextWant: ['Udělat tabulku úplně sám/sama.', 'Naučit se grafy.', 'Zvládnout všechny funkce bez pomoci.', 'Počítat zlomky rychleji.'],
-}
+const NEXT_WISH = ['Udělat tabulku úplně sám/sama.', 'Naučit se grafy.', 'Zvládnout všechny funkce bez pomoci.', 'Počítat zlomky rychleji.', '']
 
 function rng(seed: number) {
   return () => {
@@ -208,7 +192,6 @@ export function createDemoDB(): DB {
     weeks: number,
     critIds: string[],
     alwaysScored: string[],
-    lesson: number,
   ) {
     people.forEach((st, si) => {
       const start: Record<string, number> = {}
@@ -229,7 +212,7 @@ export function createDemoDB(): DB {
           if (!chosen.has(c)) continue
           scores[c] = clamp(start[c] - rate[c] * w + (r() - 0.5) * 0.9)
         }
-        // Ukázka ze zadání: Adam Novák, samostatnost 4 → 3 → 3 → 2.
+        // Ukázka z praxe: Adam Novák, samostatnost postupně stoupá (2 → 3 → 3 → 4 za říjen).
         if (st.id === 's-me1-0' && subjectId === 'p-me1-inf') {
           const series = [5, 5, 4, 4, 4, 3, 3, 2, 2]
           scores['k-samostatnost'] = series[Math.max(0, series.length - weeks + w)] as Level
@@ -237,9 +220,12 @@ export function createDemoDB(): DB {
           scores['k-znalosti'] = clamp(3 - w * 0.2)
           if (scores['k-pokrok']) scores['k-pokrok'] = clamp(4 - w * 0.3)
         }
+        // Výpočet výše běží „postaru“ (nižší = lepší); škála v aplikaci je 1 = nejnižší, 5 = nejvyšší.
+        for (const k of Object.keys(scores)) scores[k] = (6 - scores[k]) as Level
         const avg = Object.values(scores).reduce((a, b) => a + b, 0) / Math.max(1, Object.keys(scores).length)
         const id = `h-${subjectId}-${si}-${w}`
-        const strong = avg <= 2.4
+        const strong = avg >= 3.6
+        const goalStatus: LessonGoalStatus = avg >= 4 ? (r() < 0.85 ? 'splneno' : 'castecne') : avg >= 3 ? (r() < 0.6 ? 'castecne' : 'splneno') : r() < 0.6 ? 'nesplneno' : 'castecne'
         const nextText = pick(fb.next)
         const a: Assessment = {
           id,
@@ -248,7 +234,8 @@ export function createDemoDB(): DB {
           date,
           topic,
           goal: fb.goal,
-          successCriterion: fb.success,
+          goalStatus,
+          skills: Object.keys(scores),
           scores,
           feedback: {
             good: pick(fb.good),
@@ -257,7 +244,6 @@ export function createDemoDB(): DB {
           },
           swot: { s: '', w: '', o: '', t: '', proposed: false },
           nextGoal: w % 2 === 1 || w === weeks - 1 ? nextText : '',
-          lesson,
           selfCode: null,
           createdAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
           updatedAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
@@ -268,6 +254,7 @@ export function createDemoDB(): DB {
             w: a.feedback.todo,
             o: `Další krok: ${a.feedback.next}`,
             t: '',
+            rec: '',
             proposed: false,
           }
         }
@@ -286,15 +273,29 @@ export function createDemoDB(): DB {
           })
         }
         if (w >= weeks - 5 && r() < 0.55) {
-          const k = Math.floor(r() * 3) + (subjectId === 'p-7a-mat' ? 1 : 0)
+          // Sebehodnocení podle univerzálního dotazníku – odpovědi zhruba odpovídají výkonu.
+          const know = scores['k-znalosti'] ?? Math.round(avg)
+          const indep = scores['k-samostatnost'] ?? Math.round(avg)
+          const band = (l: number) => (l >= 4 ? 3 : l === 3 ? 2 : 1) as 1 | 2 | 3
+          const jitter = (b: 1 | 2 | 3) => (r() < 0.2 ? (Math.min(3, Math.max(1, b + (r() < 0.5 ? -1 : 1))) as 1 | 2 | 3) : b)
+          const understanding = jitter(band(know))
+          const work = jitter(band(indep))
+          const wentWell = ['pochopil', 'splnil', 'samostatne', 'spoluprace', 'nevzdal'].filter((_, n) => r() < (n < 2 ? 0.55 : 0.3))
+          const improve =
+            understanding === 3 && goalStatus === 'splneno' && r() < 0.5
+              ? ['nic']
+              : ['porozumet', 'procvicovat', 'samostatneji', 'soustredit', 'spolupracovat'].filter((_, n) => r() < (n < 2 ? 0.45 : 0.2))
           selfAssessments.push({
             id: `z-${id}`,
             assessmentId: id,
-            learned: SELF.learned[k % 4],
-            wentWell: SELF.wentWell[k % 4],
-            struggle: SELF.struggle[k % 4],
-            needHelp: SELF.needHelp[k % 4],
-            nextWant: SELF.nextWant[k % 4],
+            answers: {
+              understanding,
+              work,
+              wentWell: wentWell.length ? wentWell : ['splnil'],
+              improve: improve.length ? improve : ['procvicovat'],
+              goalMet: goalStatus === 'splneno' ? (r() < 0.85 ? 'ano' : 'castecne') : goalStatus === 'castecne' ? (r() < 0.7 ? 'castecne' : 'ano') : r() < 0.6 ? 'zatimne' : 'castecne',
+              nextWish: pick(NEXT_WISH),
+            },
             submittedAt: `${date}T08:00:00.000Z`,
           })
         }
@@ -304,16 +305,16 @@ export function createDemoDB(): DB {
 
   const defaults = DEFAULT_CRITERIA.map((c) => c.id)
   generate('p-me1-inf', students.filter((s) => s.classId === 'c-me1'), INFO_TOPICS, 1, 9,
-    [...defaults, 'k-inf-suma'], ['k-samostatnost', 'k-znalosti'], 2)
+    [...defaults, 'k-inf-suma'], ['k-samostatnost', 'k-znalosti'])
   generate('p-7a-mat', students.filter((s) => s.classId === 'c-7a'), MATH_TOPICS, 2, 8,
-    [...defaults.filter((c) => c !== 'k-pokrok'), 'k-7a-ulohy'], ['k-znalosti', 'k-dovednosti'], 3)
+    [...defaults.filter((c) => c !== 'k-pokrok'), 'k-7a-ulohy'], ['k-znalosti', 'k-dovednosti'])
   generate('p-me1-mat', students.filter((s) => s.classId === 'c-me1').slice(0, 5), MATH_TOPICS, 3, 4,
-    defaults, ['k-znalosti'], 2)
+    defaults, ['k-znalosti'])
 
   const phrases: Phrase[] = PHRASES.map((p) => ({ ...p, id: uid('v') }))
 
   const base: DB = {
-    version: 1,
+    version: 2,
     schools,
     classes,
     students,
@@ -325,8 +326,7 @@ export function createDemoDB(): DB {
     summaries: [],
     phrases,
     audit: [],
-    timetable: demoTimetable(),
-    settings: { role: 'ucitel', teacherName: 'Mgr. Jana Učitelová', schoolType: 'SS', bells: DEFAULT_BELLS },
+    settings: { role: 'ucitel', teacherName: 'Mgr. Jana Učitelová', schoolType: 'SS' },
   }
 
   // Ukázkové souhrny: schválený měsíční (minulý měsíc) a rozpracovaný týdenní (minulý týden).

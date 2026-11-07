@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
-import { LEVELS } from '../lib/analysis'
+import { levelLabel } from '../lib/levels'
 
 export const cx = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(' ')
 
@@ -70,14 +70,16 @@ export function Pill({ children, tone = 'neutral', className }: { children: Reac
     sea: 'bg-sea-50 text-sea-700',
     brand: 'bg-brand-50 text-brand-700',
   }
-  return <span className={cx('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold', tones[tone], className)}>{children}</span>
+  // Výchozí štítek se nezalamuje; s className „whitespace-normal“ se zalomí (dlouhé texty na telefonu).
+  const wrap = className?.includes('whitespace-') ? '' : 'whitespace-nowrap'
+  return <span className={cx('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold', wrap, tones[tone], className)}>{children}</span>
 }
 
 export function LevelBadge({ level, size = 'md' }: { level?: number; size?: 'sm' | 'md' }) {
   if (!level) return <span className="text-ink-faint">–</span>
   return (
     <span
-      title={LEVELS[level - 1]?.text}
+      title={levelLabel(level)}
       className={cx(
         'tabular inline-flex items-center justify-center rounded-lg font-bold text-white',
         size === 'sm' ? 'h-6 w-6 text-xs' : 'h-8 w-8 text-sm',

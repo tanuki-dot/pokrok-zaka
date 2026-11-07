@@ -59,7 +59,7 @@ export default function PrintSummary() {
           </div>
         </footer>
         <p className="mt-8 text-xs text-ink-faint">
-          Úrovně 1–5 vyjadřují aktuální zvládnutí dovedností (1 = nejvyšší). Nejde o školní známky. Žák je porovnáván se svým dřívějším výkonem.
+          Úrovně 1–5 vyjadřují aktuální zvládnutí dovedností (1 = nejnižší, 5 = nejvyšší). Nejde o školní známky. Žák je porovnáván se svým dřívějším výkonem.
         </p>
       </article>
     </div>

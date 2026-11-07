@@ -2,8 +2,10 @@ import * as XLSX from 'xlsx'
 import type { DB } from './types'
 import { fullName } from './util'
 import { KIND_LABEL } from './dates'
+import { GOAL_STATUS_LABEL } from './analysis'
+import { describe } from './questionnaire'
 
-/** Řádky pro export – jedna řada = jedno hodnocení, kritéria jako sloupce. */
+/** Řádky pro export – jedna řada = jedno hodnocení, kritéria jako sloupce (1 = nejnižší, 5 = nejvyšší, prázdné = nehodnoceno). */
 export function buildSheets(db: DB, subjectId: string | 'vse') {
   const subjects = subjectId === 'vse' ? db.subjects : db.subjects.filter((s) => s.id === subjectId)
   const sIds = new Set(subjects.map((s) => s.id))
@@ -18,13 +20,12 @@ export function buildSheets(db: DB, subjectId: string | 'vse') {
     const self = db.selfAssessments.find((x) => x.assessmentId === a.id)
     const row: Record<string, string | number> = {
       Datum: a.date,
-      Hodina: a.lesson ?? '',
       Třída: cl(s?.classId),
       Předmět: sub(a.subjectId),
       Žák: s ? fullName(s) : '',
       Téma: a.topic,
-      Cíl: a.goal,
-      'Kritérium úspěchu': a.successCriterion,
+      'Vzdělávací cíl': a.goal,
+      'Splnění cíle': a.goalStatus ? GOAL_STATUS_LABEL[a.goalStatus] : '',
     }
     for (const c of crit) row[c.name] = a.scores[c.id] ?? ''
     Object.assign(row, {
@@ -35,9 +36,15 @@ export function buildSheets(db: DB, subjectId: string | 'vse') {
       'SWOT – oblasti ke zlepšení': a.swot.w,
       'SWOT – příležitosti': a.swot.o,
       'SWOT – překážky': a.swot.t,
+      'Doporučení': a.swot.rec ?? '',
+      'Formativní hodnocení': a.formative ?? '',
       'Další cíl': a.nextGoal,
-      'Sebehodnocení: co jsem se naučil': self?.learned ?? '',
-      'Sebehodnocení: s čím potřebuji pomoc': self?.needHelp ?? '',
+      'Sebehodnocení: porozumění': self?.answers ? describe.understanding(self.answers.understanding) : '',
+      'Sebehodnocení: práce': self?.answers ? describe.work(self.answers.work) : '',
+      'Sebehodnocení: povedlo se': self?.answers ? describe.wentWell(self.answers.wentWell).join(' ') : self?.wentWell ?? '',
+      'Sebehodnocení: zlepšit': self?.answers ? describe.improve(self.answers.improve).join(' ') : self?.needHelp ?? '',
+      'Sebehodnocení: cíl hodiny': self?.answers ? describe.goalMet(self.answers.goalMet) : '',
+      'Sebehodnocení: příště': self?.answers ? self.answers.nextWish : self?.nextWant ?? '',
     })
     return row
   })

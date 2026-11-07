@@ -71,7 +71,7 @@ export default function ClassOverview() {
                     {criteria.map((c) => {
                       const pts = criterionSeries(as, c.id)
                       const last = pts.at(-1)
-                      const diff = pts.length > 1 ? pts[0].level - last!.level : 0
+                      const diff = pts.length > 1 ? last!.level - pts[0].level : 0
                       return (
                         <td key={c.id} className="border-b border-line px-2 py-2 text-center">
                           <span className="inline-flex items-center gap-1">
@@ -95,7 +95,7 @@ export default function ClassOverview() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-xs text-ink-faint">↑ zlepšení (nižší číslo) · ↓ potřebuje víc podpory · Cíle: splněné / stanovené v období. Přehled slouží k plánování podpory, ne k pořadí žáků.</p>
+        <p className="mt-3 text-xs text-ink-faint">Úroveň 1 = nejnižší, 5 = nejvyšší, – = nehodnoceno · ↑ zlepšení · ↓ potřebuje víc podpory · Cíle: splněné / stanovené v období. Přehled slouží k plánování podpory, ne k pořadí žáků.</p>
       </Card>
     </>
   )
