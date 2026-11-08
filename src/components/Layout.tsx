@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
-  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, GraduationCap, LayoutDashboard, Menu, RotateCcw,
+  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, RotateCcw,
   MessageSquareHeart, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X,
 } from 'lucide-react'
 import { resetDemo, setRole } from '../lib/store'
@@ -14,12 +14,14 @@ import { openPrivacy } from '../lib/privacy'
 const TEACHER_NAV = [
   { to: '/prehled', label: 'Přehled', icon: LayoutDashboard },
   { to: '/hodnoceni/nove', label: 'Nové hodnocení', icon: ClipboardPen },
+  { to: '/historie', label: 'Historie hodnocení', icon: History },
   { to: '/zaci', label: 'Žáci a pokrok', icon: GraduationCap },
-  { to: '/trida', label: 'Přehled třídy', icon: BarChart3 },
-  { to: '/souhrny', label: 'Souhrny', icon: FileText },
   { to: '/sebehodnoceni-zaku', label: 'Sebehodnocení', icon: MessageSquareHeart },
+  { to: '/souhrny', label: 'Souhrny', icon: FileText },
+  { to: '/portfolio', label: 'Portfolio a přílohy', icon: FolderOpen },
+  { to: '/trida', label: 'Přehled třídy', icon: BarChart3 },
   { to: '/tridy', label: 'Třídy a žáci', icon: Users },
-  { to: '/kriteria', label: 'Kritéria a věty', icon: SlidersHorizontal },
+  { to: '/kriteria', label: 'Dovednosti a věty', icon: SlidersHorizontal },
   { to: '/export', label: 'Export dat', icon: Download },
 ]
 const MGMT_NAV = [{ to: '/vedeni', label: 'Vedení školy', icon: School }]
@@ -53,7 +55,7 @@ export function Layout({ children }: { children: ReactNode }) {
           className={({ isActive }) =>
             cx(
               'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold transition-colors',
-              isActive ? 'bg-brand-500 text-white shadow-[0_6px_16px_-8px_rgba(238,116,36,.8)]' : 'text-ink-soft hover:bg-sea-50 hover:text-ink',
+              isActive ? 'bg-brand-500 text-white shadow-[0_6px_16px_-8px_rgba(14,148,136,.7)]' : 'text-ink-soft hover:bg-sea-50 hover:text-ink',
             )
           }
         >
@@ -64,7 +66,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
         <div className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
-          <strong className="block text-[13px]">Demo režim</strong>
+          <strong className="block text-[13px]">Demonstrační aplikace</strong>
           Fiktivní žáci a třídy. Data se ukládají jen v tomto prohlížeči.
         </div>
         <div className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">

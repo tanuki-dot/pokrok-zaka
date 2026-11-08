@@ -16,14 +16,14 @@
     <style>
       /* Úvodní obrazovka – zobrazí se hned, ještě před načtením aplikace (skrývá ji src/lib/splash.ts). */
       #splash {
-        --s-bg: #f3f6fb; --s-ink: #16213a; --s-faint: #8a96ab;
+        --s-bg: #f2f7f7; --s-ink: #14282b; --s-faint: #86999b;
         position: fixed; inset: 0; z-index: 100;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
         background: var(--s-bg); color: var(--s-ink);
         font-family: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
         transition: opacity .25s ease, visibility .25s ease;
       }
-      html[data-theme="dark"] #splash { --s-bg: #0e1320; --s-ink: #e7ecf5; --s-faint: #7c879e; }
+      html[data-theme="dark"] #splash { --s-bg: #0c1517; --s-ink: #e4eeee; --s-faint: #768a8c; }
       #splash.splash-hide { opacity: 0; visibility: hidden; }
       #splash .s-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
       #splash .s-levels { display: flex; gap: 6px; }
@@ -31,11 +31,11 @@
         width: 22px; height: 6px; border-radius: 3px; opacity: .25;
         animation: s-pulse 1s ease-in-out infinite;
       }
-      #splash .s-levels span:nth-child(1) { background: #c8506a; animation-delay: 0s; }
-      #splash .s-levels span:nth-child(2) { background: #e07b2a; animation-delay: .1s; }
+      #splash .s-levels span:nth-child(1) { background: #1f9d55; animation-delay: 0s; }
+      #splash .s-levels span:nth-child(2) { background: #6aa83a; animation-delay: .1s; }
       #splash .s-levels span:nth-child(3) { background: #d4a017; animation-delay: .2s; }
-      #splash .s-levels span:nth-child(4) { background: #6aa83a; animation-delay: .3s; }
-      #splash .s-levels span:nth-child(5) { background: #1f9d55; animation-delay: .4s; }
+      #splash .s-levels span:nth-child(4) { background: #e07b2a; animation-delay: .3s; }
+      #splash .s-levels span:nth-child(5) { background: #c8506a; animation-delay: .4s; }
       @keyframes s-pulse { 0%, 100% { opacity: .25; transform: scaleY(1); } 40% { opacity: 1; transform: scaleY(1.5); } }
       @media (prefers-reduced-motion: reduce) {
         #splash { transition: none; }
@@ -46,7 +46,7 @@
   </head>
   <body>
     <div id="splash" role="status" aria-label="Načítání aplikace Pokrok žáka">
-      <svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#EA6A1F"/><path d="M8 22l5-6 4 3 7-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0E9488"/><path d="M8 22l5-6 4 3 7-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div class="s-name">Pokrok žáka</div>
       <div class="s-levels" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
     </div>

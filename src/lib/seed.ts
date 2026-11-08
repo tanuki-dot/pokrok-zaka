@@ -1,25 +1,29 @@
 import type {
-  Assessment, AuditEntry, Criterion, DB, Goal, Level, LessonGoalStatus, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary,
+  Assessment, AuditEntry, Criterion, DB, Goal, Level, LessonGoalStatus, Phrase, SchoolClass, SelfAssessment, Student, Subject, Summary, TeacherQKey, TeacherAnswer,
 } from './types'
 import { addDays, periodFor, today, weekStart } from './dates'
-import { generateSummary } from './analysis'
+import { generateSummary, proposeDevelopment, reportText } from './analysis'
 import { uid } from './util'
+import { DEFAULT_CRITERIA, DEMO_UNITS } from './catalog'
+import { selfFormFor } from './questionnaire'
+import { rangeFor } from './periods'
+
+export { DEFAULT_CRITERIA } from './catalog'
+
+/** Tematický celek ŠVP podle tématu ukázkové hodiny. */
+const UNIT_OF: Record<string, string> = {
+  'Zlomky – krácení a rozšiřování': 'svp-mat-7-1',
+  'Sčítání a odčítání zlomků': 'svp-mat-7-1',
+  'Násobení a dělení zlomků': 'svp-mat-7-1',
+  'Slovní úlohy se zlomky': 'svp-mat-7-1',
+  'Desetinná čísla': 'svp-mat-7-2',
+}
 
 /*
  * Demo režim: fiktivní školy, třídy a žáci (ZŠ i SŠ), aby šlo formativní hodnocení
  * vyzkoušet bez skutečných osobních údajů. Data se generují relativně k dnešku
  * (posledních 9 týdnů), takže týdenní přehled je vždy naplněný.
  */
-
-export const DEFAULT_CRITERIA: Criterion[] = [
-  { id: 'k-znalosti', subjectId: null, name: 'Znalosti', question: 'Rozumí žák učivu?' },
-  { id: 'k-dovednosti', subjectId: null, name: 'Dovednosti', question: 'Dokáže učivo použít?' },
-  { id: 'k-samostatnost', subjectId: null, name: 'Samostatnost', question: 'Zvládne pracovat bez pomoci?' },
-  { id: 'k-spoluprace', subjectId: null, name: 'Spolupráce', question: 'Dokáže pracovat s ostatními?' },
-  { id: 'k-ukoly', subjectId: null, name: 'Plnění úkolů', question: 'Dokončí zadanou práci?' },
-  { id: 'k-pokrok', subjectId: null, name: 'Pokrok', question: 'Zlepšuje se?' },
-  { id: 'k-sebehodnoceni', subjectId: null, name: 'Sebehodnocení', question: 'Ví, co umí a co potřebuje zlepšit?' },
-]
 
 const PHRASES: Omit<Phrase, 'id'>[] = [
   { kind: 'good', text: 'Pracuje soustředěně a dokončí zadání.' },
@@ -158,8 +162,8 @@ export function createDemoDB(): DB {
     { id: 'skola-ss', name: 'Střední průmyslová škola (demo)', type: 'SS' as const },
   ]
   const classes: SchoolClass[] = [
-    { id: 'c-me1', schoolId: 'skola-ss', name: 'ME1' },
-    { id: 'c-7a', schoolId: 'skola-zs', name: '7.A' },
+    { id: 'c-me1', schoolId: 'skola-ss', name: 'ME1', grade: 1, field: 'Mechanik elektrotechnik' },
+    { id: 'c-7a', schoolId: 'skola-zs', name: '7.A', grade: 7 },
   ]
   const students: Student[] = [
     ...ME1.map(([f, l], i) => ({ id: `s-me1-${i}`, classId: 'c-me1', firstName: f, lastName: l })),
@@ -168,7 +172,7 @@ export function createDemoDB(): DB {
   const subjects: Subject[] = [
     { id: 'p-me1-inf', classId: 'c-me1', name: 'Informatika', hiddenDefaults: [] },
     { id: 'p-me1-mat', classId: 'c-me1', name: 'Matematika', hiddenDefaults: [] },
-    { id: 'p-7a-mat', classId: 'c-7a', name: 'Matematika', hiddenDefaults: ['k-pokrok'] },
+    { id: 'p-7a-mat', classId: 'c-7a', name: 'Matematika', hiddenDefaults: ['k-digitalni'] },
     { id: 'p-7a-cj', classId: 'c-7a', name: 'Český jazyk', hiddenDefaults: [] },
   ]
   const criteria: Criterion[] = [
@@ -212,38 +216,45 @@ export function createDemoDB(): DB {
           if (!chosen.has(c)) continue
           scores[c] = clamp(start[c] - rate[c] * w + (r() - 0.5) * 0.9)
         }
-        // Ukázka z praxe: Adam Novák, samostatnost postupně stoupá (2 → 3 → 3 → 4 za říjen).
+        // Ukázka z praxe: Adam Novák, samostatnost se zlepšuje 4 → 3 → 3 → 2 (1 = výborně).
         if (st.id === 's-me1-0' && subjectId === 'p-me1-inf') {
           const series = [5, 5, 4, 4, 4, 3, 3, 2, 2]
           scores['k-samostatnost'] = series[Math.max(0, series.length - weeks + w)] as Level
           scores['k-inf-suma'] = clamp(4 - w * 0.35)
           scores['k-znalosti'] = clamp(3 - w * 0.2)
-          if (scores['k-pokrok']) scores['k-pokrok'] = clamp(4 - w * 0.3)
         }
-        // Výpočet výše běží „postaru“ (nižší = lepší); škála v aplikaci je 1 = nejnižší, 5 = nejvyšší.
-        for (const k of Object.keys(scores)) scores[k] = (6 - scores[k]) as Level
         const avg = Object.values(scores).reduce((a, b) => a + b, 0) / Math.max(1, Object.keys(scores).length)
         const id = `h-${subjectId}-${si}-${w}`
-        const strong = avg >= 3.6
-        const goalStatus: LessonGoalStatus = avg >= 4 ? (r() < 0.85 ? 'splneno' : 'castecne') : avg >= 3 ? (r() < 0.6 ? 'castecne' : 'splneno') : r() < 0.6 ? 'nesplneno' : 'castecne'
+        const strong = avg <= 2.4
+        const goalStatus: LessonGoalStatus = avg <= 2 ? (r() < 0.85 ? 'splneno' : 'castecne') : avg <= 3 ? (r() < 0.6 ? 'castecne' : 'splneno') : r() < 0.6 ? 'nesplneno' : 'castecne'
+        const good = pick(fb.good)
+        const todo = strong && r() < 0.5 ? '' : pick(fb.todo)
+        const teacherQ: Partial<Record<TeacherQKey, TeacherAnswer>> = {
+          zvladnuti: { choices: [avg <= 1.8 ? 'Učivo zvládá výborně a dokáže ho použít.' : avg <= 2.6 ? 'Učivo zvládá dobře, s drobnými nejistotami.' : avg <= 3.4 ? 'Zvládá základy, potřebuje další procvičení.' : 'Učivo zatím nezvládá, potřebuje podporu.'], note: '' },
+          samostatnost: { choices: [(scores['k-samostatnost'] ?? avg) <= 2 ? 'Pracuje samostatně.' : (scores['k-samostatnost'] ?? avg) <= 3 ? 'Občas potřebuje pomoc.' : 'Potřebuje časté vedení.'], note: '' },
+          povedlo: { choices: [], note: good },
+          ...(todo ? { procvicit: { choices: [], note: todo } } : {}),
+        }
         const nextText = pick(fb.next)
         const a: Assessment = {
           id,
           studentId: st.id,
           subjectId,
           date,
+          periodType: 'hodina',
+          periodFrom: date,
+          periodTo: date,
+          units: subjectId === 'p-me1-inf' ? ['svp-inf-2'] : subjectId === 'p-7a-mat' && UNIT_OF[topic] ? [UNIT_OF[topic]] : [],
           topic,
-          goal: fb.goal,
-          goalStatus,
+          goals: [{ id: `c-${subjectId}-${si}-${w}`, text: fb.goal, status: goalStatus }],
           skills: Object.keys(scores),
           scores,
-          feedback: {
-            good: pick(fb.good),
-            todo: strong && r() < 0.5 ? '' : pick(fb.todo),
-            next: nextText,
-          },
+          skillNotes: {},
+          teacherQ: { ...teacherQ, dalsi: { choices: [], note: nextText } },
+          feedback: { good, todo, next: nextText },
           swot: { s: '', w: '', o: '', t: '', proposed: false },
           nextGoal: w % 2 === 1 || w === weeks - 1 ? nextText : '',
+          status: 'dokoncene',
           selfCode: null,
           createdAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
           updatedAt: `${date}T07:${String(10 + si).padStart(2, '0')}:00.000Z`,
@@ -276,7 +287,7 @@ export function createDemoDB(): DB {
           // Sebehodnocení podle univerzálního dotazníku – odpovědi zhruba odpovídají výkonu.
           const know = scores['k-znalosti'] ?? Math.round(avg)
           const indep = scores['k-samostatnost'] ?? Math.round(avg)
-          const band = (l: number) => (l >= 4 ? 3 : l === 3 ? 2 : 1) as 1 | 2 | 3
+          const band = (l: number) => (l <= 2 ? 3 : l === 3 ? 2 : 1) as 1 | 2 | 3
           const jitter = (b: 1 | 2 | 3) => (r() < 0.2 ? (Math.min(3, Math.max(1, b + (r() < 0.5 ? -1 : 1))) as 1 | 2 | 3) : b)
           const understanding = jitter(band(know))
           const work = jitter(band(indep))
@@ -288,6 +299,7 @@ export function createDemoDB(): DB {
           selfAssessments.push({
             id: `z-${id}`,
             assessmentId: id,
+            form: selfFormFor('hodina', date, date),
             answers: {
               understanding,
               work,
@@ -307,27 +319,104 @@ export function createDemoDB(): DB {
   generate('p-me1-inf', students.filter((s) => s.classId === 'c-me1'), INFO_TOPICS, 1, 9,
     [...defaults, 'k-inf-suma'], ['k-samostatnost', 'k-znalosti'])
   generate('p-7a-mat', students.filter((s) => s.classId === 'c-7a'), MATH_TOPICS, 2, 8,
-    [...defaults.filter((c) => c !== 'k-pokrok'), 'k-7a-ulohy'], ['k-znalosti', 'k-dovednosti'])
+    [...defaults.filter((c) => c !== 'k-digitalni'), 'k-7a-ulohy'], ['k-znalosti', 'k-reseni'])
   generate('p-me1-mat', students.filter((s) => s.classId === 'c-me1').slice(0, 5), MATH_TOPICS, 3, 4,
     defaults, ['k-znalosti'])
 
   const phrases: Phrase[] = PHRASES.map((p) => ({ ...p, id: uid('v') }))
 
   const base: DB = {
-    version: 2,
+    version: 3,
     schools,
     classes,
     students,
     subjects,
     criteria,
+    units: structuredClone(DEMO_UNITS),
     assessments,
     selfAssessments,
+    attachments: [],
     goals,
     summaries: [],
     phrases,
     audit: [],
     settings: { role: 'ucitel', teacherName: 'Mgr. Jana Učitelová', schoolType: 'SS' },
   }
+
+  // Měsíční hodnocení Adama za minulý měsíc se schválenou formativní zprávou.
+  {
+    const lm = rangeFor('mesic', addDays(periodFor('mesic', now).from, -1))
+    const id = 'h-adam-mesic'
+    const a: Assessment = {
+      id,
+      studentId: 's-me1-0',
+      subjectId: 'p-me1-inf',
+      date: lm.to,
+      periodType: 'mesic',
+      periodFrom: lm.from,
+      periodTo: lm.to,
+      units: ['svp-inf-2'],
+      topic: 'Práce v Excelu',
+      goals: [
+        { id: 'c-adam-1', text: 'Žák vytvoří tabulku a použije funkce SUMA, PRŮMĚR, MIN a MAX.', status: 'castecne' },
+        { id: 'c-adam-2', text: 'Žák vytvoří z dat vhodný graf s popisky.', status: 'splneno' },
+      ],
+      skills: ['k-znalosti', 'k-reseni', 'k-samostatnost', 'k-digitalni', 'k-zpetna-vazba'],
+      scores: { 'k-znalosti': 2, 'k-reseni': 3, 'k-samostatnost': 2, 'k-digitalni': 2 },
+      skillNotes: { 'k-samostatnost': 'Během měsíce výrazně zesamostatněl, nápovědu potřebuje jen u nových funkcí.', 'k-reseni': 'U funkce PRŮMĚR si plete oblast dat.' },
+      teacherQ: {
+        zvladnuti: { choices: ['Učivo zvládá dobře, s drobnými nejistotami.'], note: '' },
+        samostatnost: { choices: ['Samostatnost se zlepšuje.'], note: '' },
+        povedlo: { choices: ['Samostatná práce.', 'Zlepšení oproti minulému období.'], note: 'Grafy s popisky zvládá bez pomoci.' },
+        procvicit: { choices: ['Přesnost a kontrola výsledků.'], note: 'Výběr oblasti u funkce PRŮMĚR.' },
+        dalsi: { choices: ['Řešit úlohy samostatně bez nápovědy.'], note: 'Samostatně vypočítat průměr pěti čísel.' },
+      },
+      feedback: { good: 'Samostatná práce. Zlepšení oproti minulému období. Grafy s popisky zvládá bez pomoci.', todo: 'Přesnost a kontrola výsledků. Výběr oblasti u funkce PRŮMĚR.', next: 'Řešit úlohy samostatně bez nápovědy. Samostatně vypočítat průměr pěti čísel.' },
+      swot: { s: '', w: '', o: '', t: '', proposed: true },
+      nextGoal: 'Samostatně vypočítat průměr pěti čísel.',
+      status: 'dokoncene',
+      selfCode: null,
+      createdAt: `${lm.to}T14:00:00.000Z`,
+      updatedAt: `${lm.to}T14:30:00.000Z`,
+    }
+    const self: SelfAssessment = {
+      id: 'z-adam-mesic',
+      assessmentId: id,
+      form: selfFormFor('mesic', lm.from, lm.to),
+      answers: { understanding: 2, work: 3, wentWell: ['m-p2', 'm-p4'], improve: ['m-z1'], goalMet: 'castecne', nextWish: 'Zvládnout všechny funkce bez pomoci.' },
+      submittedAt: `${lm.to}T13:00:00.000Z`,
+    }
+    const tmp = { ...structuredClone({ schools, classes, students, subjects, criteria, units: DEMO_UNITS, assessments, selfAssessments, attachments: [], goals, summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' } }), version: 3 } as DB
+    const rep = reportText(tmp, a, self, 'stredni')
+    a.swot = proposeDevelopment(tmp, a, self)
+    a.report = { length: 'stredni', text: rep.text, original: rep.text, source: 'sablona', approved: true, approvedAt: `${lm.to}T14:30:00.000Z`, missing: rep.missing, attachments: [] }
+    assessments.push(a)
+    selfAssessments.push(self)
+  }
+  // Rozpracované hodnocení (vyplněné jen údaje o žákovi) – pro přehled nedokončených.
+  assessments.push({
+    id: 'h-draft-bara',
+    studentId: 's-me1-1',
+    subjectId: 'p-me1-inf',
+    date: now,
+    periodType: 'tyden',
+    periodFrom: thisMonday,
+    periodTo: addDays(thisMonday, 6),
+    units: ['svp-inf-2'],
+    topic: 'Grafy',
+    goals: [{ id: 'c-bara-1', text: 'Žák vytvoří z dat vhodný graf s popisky.', status: null }],
+    skills: [],
+    scores: {},
+    skillNotes: {},
+    teacherQ: {},
+    feedback: { good: '', todo: '', next: '' },
+    swot: { s: '', w: '', o: '', t: '', proposed: true },
+    nextGoal: '',
+    status: 'rozpracovane',
+    selfCode: null,
+    createdAt: `${now}T06:30:00.000Z`,
+    updatedAt: `${now}T06:30:00.000Z`,
+  })
 
   // Ukázkové souhrny: schválený měsíční (minulý měsíc) a rozpracovaný týdenní (minulý týden).
   const summaries: Summary[] = []

@@ -117,7 +117,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 
 export function Tabs<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-xl border border-line bg-surface p-1">
+    <div role="tablist" className="inline-flex max-w-full flex-wrap rounded-xl border border-line bg-surface p-1">
       {options.map((o) => (
         <button
           key={o.value}

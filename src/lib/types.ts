@@ -1,17 +1,18 @@
-// Datový model podle zadání (docx „Pokrok žáka – SWOT a formativní hodnocení“
-// a úprav v „pokrok_oprava.docx“ a „dotaznik.docx“).
-// Stejné tabulky jsou v supabase/migrations/0001_init.sql pro ostrý provoz.
+// Datový model podle zadání (formativní hodnocení.docx, pokrok_oprava.docx, dotaznik.docx
+// a pokrokveskole.docx). Stejné tabulky jsou v supabase/migrations pro ostrý provoz.
 
 export type SchoolType = 'ZS' | 'SS'
-/** Úroveň zvládnutí: 1 = nejnižší (zatím nezvládá), 5 = nejvyšší (samostatně a jistě). */
+/** Úroveň zvládnutí: 1 = výborně (nejlepší), 5 = zatím nezvládá (nejnižší). */
 export type Level = 1 | 2 | 3 | 4 | 5
-export type SummaryKind = 'tyden' | 'mesic' | 'pololeti'
+export type PeriodType = 'hodina' | 'tyden' | 'mesic' | 'pololeti' | 'rok' | 'vlastni'
+export type SummaryKind = 'tyden' | 'mesic' | 'pololeti' | 'rok' | 'vlastni'
 export type GoalStatus = 'rozpracovany' | 'splneny' | 'nesplneny'
-/** Splnění vzdělávacího cíle hodiny (hodnotí učitel). */
+/** Splnění vzdělávacího cíle (hodnotí učitel). */
 export type LessonGoalStatus = 'splneno' | 'castecne' | 'nesplneno'
 export type Role = 'ucitel' | 'vedeni'
-/** Formulace dotazníku pro žáky: standardní, nebo jednodušší pro mladší žáky. */
+/** Formulace sebehodnoticího dotazníku: standardní, nebo jednodušší pro mladší žáky. */
 export type SelfWording = 'standard' | 'mladsi'
+export type ReportLength = 'kratke' | 'stredni' | 'dlouhe'
 
 export interface School {
   id: string
@@ -23,7 +24,10 @@ export interface SchoolClass {
   id: string
   schoolId: string
   name: string
-  /** Formulace sebehodnoticího dotazníku pro tuto třídu. */
+  /** Ročník (pro výběr tematických celků ŠVP). */
+  grade?: number
+  /** Obor (SŠ). */
+  field?: string
   selfWording?: SelfWording
 }
 
@@ -34,100 +38,173 @@ export interface Student {
   lastName: string
 }
 
-/** Předmět vyučovaný v konkrétní třídě. */
 export interface Subject {
   id: string
   classId: string
   name: string
-  /** Výchozí oblasti, které učitel u tohoto předmětu vypnul. */
+  /** Výchozí dovednosti, které učitel u předmětu vypnul (nejsou pro předmět relevantní). */
   hiddenDefaults: string[]
 }
 
-/** Hodnoticí kritérium. subjectId = null → výchozí oblast pro všechny předměty. */
+/** Hodnocená dovednost. subjectId = null → společná pro všechny předměty. */
 export interface Criterion {
   id: string
   subjectId: string | null
   name: string
   question: string
+  /** Starší dovednost – zůstává v historii, pro nová hodnocení se nenabízí. */
+  archived?: boolean
 }
 
-/** Slovní zpětná vazba učitele – nepovinná. */
+/** Tematický celek podle ŠVP (ukázkový katalog + vlastní celky učitele). */
+export interface TopicUnit {
+  id: string
+  /** Název předmětu malými písmeny (katalog se páruje podle názvu předmětu). */
+  subjectName: string
+  /** Ročníky, pro které celek platí (prázdné = všechny). */
+  grades: number[]
+  /** Typ školy (prázdné = obě). */
+  schoolType?: SchoolType
+  name: string
+  /** Připravené vzdělávací cíle k celku. */
+  goals: string[]
+  custom?: boolean
+}
+
 export interface Feedback {
   good: string
   todo: string
   next: string
 }
 
+/** Individuální rozvoj žáka (dříve SWOT). */
 export interface Swot {
+  /** Co žák zvládá (zelené pole). */
   s: string
+  /** Co potřebuje zlepšit (oranžové pole). */
   w: string
+  /** Možnosti dalšího rozvoje (modré pole). */
   o: string
+  /** Překážky v učení (červené pole). */
   t: string
-  /** Doporučení pro další rozvoj žáka. */
   rec?: string
-  /** Zda text vznikl automaticky a učitel ho ještě neupravil (pak se průběžně přepočítává). */
+  /** Text vytvořila aplikace a učitel ho zatím neupravil (pak se průběžně přepočítává). */
   proposed: boolean
+}
+
+export interface AssessmentGoal {
+  id: string
+  text: string
+  status: LessonGoalStatus | null
+}
+
+export type TeacherQKey = 'zvladnuti' | 'samostatnost' | 'povedlo' | 'procvicit' | 'dalsi'
+export interface TeacherAnswer {
+  choices: string[]
+  note: string
+}
+
+export interface Report {
+  length: ReportLength
+  text: string
+  /** Původní (vytvořený) návrh – pro „Vrátit původní návrh“. */
+  original: string
+  source: 'sablona' | 'ai' | 'ucitel'
+  approved: boolean
+  approvedAt: string | null
+  /** Upozornění na chybějící podklady při vytvoření návrhu. */
+  missing: string[]
+  /** Přílohy vybrané do výsledné zprávy. */
+  attachments: string[]
+}
+
+/** Upravený sebehodnoticí dotazník (učitel ho může před zpřístupněním žákovi změnit). */
+export interface SelfFormDef {
+  period: PeriodType
+  rangeLabel?: string
+  understanding: { title: string; options: { value: 1 | 2 | 3; label: string }[] }
+  work: { title: string; options: { value: 1 | 2 | 3; label: string }[] }
+  wentWell: { title: string; options: { id: string; label: string }[] }
+  improve: { title: string; options: { id: string; label: string }[]; exclusive?: string }
+  goalMet: { title: string }
+  nextWish: { title: string }
 }
 
 export interface Assessment {
   id: string
   studentId: string
   subjectId: string
+  /** Datum hodnocení. */
   date: string // YYYY-MM-DD
+  /** Hodnocené období. */
+  periodType: PeriodType
+  periodFrom: string
+  periodTo: string
+  /** Tematické celky ŠVP. */
+  units: string[]
+  /** Vlastní téma výuky. */
   topic: string
-  /** Vzdělávací cíl hodiny. */
-  goal: string
-  /** Splnění vzdělávacího cíle (null = neoznačeno). */
-  goalStatus?: LessonGoalStatus | null
-  /** Dovednosti vybrané pro tuto hodinu. Vybraná bez úrovně = nehodnoceno. */
-  skills?: string[]
+  goals: AssessmentGoal[]
+  /** Dovednosti vybrané pro toto hodnocení. Vybraná bez úrovně = nehodnoceno. */
+  skills: string[]
   scores: Record<string, Level>
+  /** Slovní komentář učitele ke každé dovednosti. */
+  skillNotes: Record<string, string>
+  /** Dotazník učitele podle období. */
+  teacherQ: Partial<Record<TeacherQKey, TeacherAnswer>>
+  /** Slovní zpětná vazba (odvozená z dotazníku učitele; kvůli souhrnům a exportu). */
   feedback: Feedback
   swot: Swot
-  /** Formativní hodnocení žáka (krátký text z hodnocení, sebehodnocení a zpětné vazby). */
-  formative?: string
-  /** true = formativní hodnocení vytvořila aplikace a učitel ho zatím neupravil. */
-  formativeProposed?: boolean
+  report?: Report
   nextGoal: string
-  /** Kód pro sebehodnocení žáka (QR / odkaz). Platí do selfCodeExpires, po odeslání zanikne. */
+  selfForm?: SelfFormDef
+  status: 'rozpracovane' | 'dokoncene'
   selfCode: string | null
   selfCodeExpires?: string | null
-  /** Kód vydaný učitelem pro opravu už odeslaných odpovědí. */
   selfCodeCorrection?: boolean
+  /** Původní hodnoty a škála u převedených záznamů (nic se nepřepisuje beze stopy). */
+  scoresOriginal?: { scale: 'v1' | 'v2'; scores: Record<string, number>; convertedAt: string }
   createdAt: string
   updatedAt: string
 }
 
-/** Odpovědi v univerzálním dotazníku (dotaznik.docx). */
 export interface SelfAnswers {
-  /** 1. Porozumění učivu: 3 = rozumím a dokážu použít, 2 = většině rozumím, 1 = zatím moc nerozumím. */
+  /** 1. Porozumění: 3 = nejlepší odpověď, 1 = nejslabší. */
   understanding: 1 | 2 | 3
-  /** 2. Práce: 3 = samostatně, 2 = občas pomoc, 1 = častější pomoc. */
+  /** 2. Práce: 3 = samostatně, 1 = častá pomoc. */
   work: 1 | 2 | 3
-  /** 3. Co se povedlo (více možností). */
   wentWell: string[]
-  /** 4. Co zlepšit (více možností; „nic“ se nekombinuje). */
   improve: string[]
-  /** 5. Splnění cíle hodiny podle žáka. */
   goalMet: 'ano' | 'castecne' | 'zatimne'
-  /** 6. Co bych chtěl/a příště zvládnout lépe (nepovinné). */
   nextWish: string
+  /** Vlastní poznámky žáka k otázkám. */
+  notes?: Partial<Record<'understanding' | 'work' | 'wentWell' | 'improve' | 'goalMet', string>>
 }
 
 export interface SelfAssessment {
   id: string
   assessmentId: string
-  /** Odpovědi z nového dotazníku. Starší záznamy mají jen volné texty níže. */
   answers?: SelfAnswers
-  /** Starší podoba (do verze 0.0.4): volné odpovědi. Zachovává se kvůli historii. */
+  /** Znění dotazníku, na který žák odpovídal (pro správné zobrazení odpovědí). */
+  form?: SelfFormDef
+  /** Starší podoba (do 0.0.4): volné odpovědi. */
   learned?: string
   wentWell?: string
   struggle?: string
   needHelp?: string
   nextWant?: string
   submittedAt: string
-  /** Kolikrát žák odpovědi opravil (řízená oprava přes nový kód). */
   corrections?: number
+}
+
+export interface Attachment {
+  id: string
+  assessmentId: string
+  owner: 'ucitel' | 'zak'
+  name: string
+  type: string
+  size: number
+  addedAt: string
 }
 
 export interface Goal {
@@ -144,7 +221,6 @@ export interface Goal {
 export interface SummarySentence {
   id: string
   text: string
-  /** ID záznamů (hodnocení / cílů / sebehodnocení), ze kterých věta vznikla. Prázdné = doplnil učitel. */
   sources: string[]
 }
 
@@ -167,8 +243,9 @@ export interface Summary {
   version: number
   createdAt: string
   approvedAt: string | null
-  /** Dříve schválené verze (při úpravě schváleného souhrnu vzniká nová verze). */
   history?: { version: number; sections: SummarySection[]; teacherNote: string; approvedAt: string | null }[]
+  /** Znění vět před převodem škály (zachování původních záznamů). */
+  sectionsOriginal?: SummarySection[]
 }
 
 export interface Phrase {
@@ -186,15 +263,17 @@ export interface AuditEntry {
 }
 
 export interface DB {
-  /** 2 = škála 1 (nejnižší) – 5 (nejvyšší); verze 1 měla škálu obráceně. */
-  version: 2
+  /** 3 = škála 1 (nejlepší) – 5 (nejnižší), období, více cílů, přílohy. */
+  version: 3
   schools: School[]
   classes: SchoolClass[]
   students: Student[]
   subjects: Subject[]
   criteria: Criterion[]
+  units: TopicUnit[]
   assessments: Assessment[]
   selfAssessments: SelfAssessment[]
+  attachments: Attachment[]
   goals: Goal[]
   summaries: Summary[]
   phrases: Phrase[]

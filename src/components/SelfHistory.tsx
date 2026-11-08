@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { Assessment, DB, SelfAnswers } from '../lib/types'
 import { fmt, fmtShort, inRange, periodFor, today } from '../lib/dates'
-import { describe, IMPROVE_NOTHING } from '../lib/questionnaire'
+import { describeSelf } from '../lib/questionnaire'
 import { Card, Pill, Tabs } from './ui'
 import { TOOLTIP_STYLE } from './chartStyle'
 
@@ -57,23 +57,26 @@ export function SelfHistory({ db, assessments, className }: { db: DB; assessment
             ) : (
               <p className="text-sm text-ink-faint">Pro graf trendu jsou potřeba aspoň dvě odpovědi v novém dotazníku.</p>
             )}
-            <p className="mt-1 text-xs text-ink-faint">3 = rozumím / samostatně / cíl splněn · 2 = většinou / občas pomoc / částečně · 1 = zatím ne / častá pomoc</p>
+            <p className="mt-1 text-xs text-ink-faint">Vlastní pohled žáka (3 stupně, ne škála učitele): 3 = rozumím / samostatně / cíle splněny · 2 = většinou / občas pomoc / částečně · 1 = zatím ne / častá pomoc</p>
           </div>
           <ul className="flex min-w-0 flex-col divide-y divide-line text-sm">
             {[...rows].reverse().slice(0, 6).map(({ a, s }) => (
               <li key={s!.id} className="py-2">
                 <div className="text-xs font-semibold text-ink-faint">{fmt(a.date)} · {a.topic}</div>
                 {s!.answers ? (
-                  <>
-                    <div>{describe.understanding(s!.answers.understanding)} {describe.work(s!.answers.work)}</div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <Pill tone={s!.answers.goalMet === 'ano' ? 'good' : s!.answers.goalMet === 'castecne' ? 'warn' : 'bad'}>cíl: {describe.goalMet(s!.answers.goalMet).replace(/\.$/, '').toLowerCase()}</Pill>
-                      {s!.answers.improve.includes(IMPROVE_NOTHING)
-                        ? <Pill tone="good">nic zlepšovat</Pill>
-                        : describe.improve(s!.answers.improve).map((t) => <Pill key={t}>{t.replace(/\.$/, '')}</Pill>)}
-                    </div>
-                    {s!.answers.nextWish && <div className="mt-1 text-ink-soft">„{s!.answers.nextWish}“</div>}
-                  </>
+                  (() => {
+                    const d = describeSelf(s!)
+                    return (
+                      <>
+                        <div>{d.understanding} {d.work}</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Pill tone={s!.answers!.goalMet === 'ano' ? 'good' : s!.answers!.goalMet === 'castecne' ? 'warn' : 'bad'}>cíle: {d.goalMet.toLowerCase()}</Pill>
+                          {d.nothingToImprove ? <Pill tone="good">nic zásadního zlepšovat</Pill> : d.improve.map((t) => <Pill key={t} className="whitespace-normal">{t.replace(/\.$/, '')}</Pill>)}
+                        </div>
+                        {d.nextWish && <div className="mt-1 text-ink-soft">„{d.nextWish}“</div>}
+                      </>
+                    )
+                  })()
                 ) : (
                   <div className="text-ink-soft">{[s!.wentWell, s!.needHelp].filter(Boolean).join(' · ') || 'Starší formát odpovědí.'}</div>
                 )}

@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import type {
-  Assessment, AuditEntry, Criterion, DB, Goal, Phrase, SchoolClass, SelfAnswers, SelfAssessment, SelfWording, Student, Subject, Summary,
+  Assessment, Attachment, AuditEntry, Criterion, DB, Feedback, Goal, Phrase, Report, SchoolClass, SelfAnswers, SelfAssessment, SelfFormDef,
+  SelfWording, Student, Subject, Summary, TeacherAnswer, TeacherQKey, TopicUnit,
 } from './types'
+import { deleteFile, putFile } from './files'
 import { createDemoDB } from './seed'
 import { uid } from './util'
 import { migrate } from './migrate'
@@ -128,6 +130,26 @@ export function removeSubject(id: string) {
   })
 }
 
+export function addStudent(classId: string, firstName: string, lastName: string): Student {
+  const st: Student = { id: uid('s'), classId, firstName: firstName.trim(), lastName: lastName.trim() }
+  const cls = db.classes.find((c) => c.id === classId)
+  commit({ ...db, students: [...db.students, st], audit: audit(db, 'vytvořeno', 'žák', `${st.firstName} ${st.lastName} · ${cls?.name ?? ''}`) })
+  return st
+}
+
+export function setClassInfo(classId: string, info: Pick<SchoolClass, 'grade' | 'field'>) {
+  commit({ ...db, classes: db.classes.map((c) => (c.id === classId ? { ...c, ...info } : c)) })
+}
+
+export function addUnit(subjectName: string, name: string, grade?: number): TopicUnit {
+  const u: TopicUnit = { id: uid('u'), subjectName: subjectName.trim().toLowerCase(), grades: grade ? [grade] : [], name: name.trim(), goals: [], custom: true }
+  commit({ ...db, units: [...db.units, u], audit: audit(db, 'vytvořeno', 'tematický celek', u.name) })
+  return u
+}
+export function removeUnit(id: string) {
+  commit({ ...db, units: db.units.filter((x) => x.id !== id) })
+}
+
 export function addStudents(classId: string, people: { firstName: string; lastName: string }[], imported = false) {
   const added: Student[] = people
     .filter((p) => p.firstName.trim() || p.lastName.trim())
@@ -149,6 +171,7 @@ export function removeStudent(id: string) {
     students: db.students.filter((s) => s.id !== id),
     assessments: db.assessments.filter((a) => a.studentId !== id),
     selfAssessments: db.selfAssessments.filter((s) => !aIds.has(s.assessmentId)),
+    attachments: db.attachments.filter((x) => !aIds.has(x.assessmentId)),
     goals: db.goals.filter((g) => g.studentId !== id),
     summaries: db.summaries.filter((s) => s.studentId !== id),
     audit: audit(db, 'smazáno', 'žák', name),
@@ -193,15 +216,29 @@ export function removePhrase(id: string) {
 
 // ─── Hodnocení (KROK 3–7) ────────────────────────────────────────────────────
 
-export type AssessmentDraft = Omit<Assessment, 'id' | 'createdAt' | 'updatedAt' | 'selfCode'> & {
+export type AssessmentDraft = Omit<Assessment, 'id' | 'createdAt' | 'updatedAt' | 'selfCode' | 'feedback' | 'status'> & {
   id?: string
   selfCode?: string | null
+  status?: Assessment['status']
+}
+
+const answerText = (x?: TeacherAnswer) => [...(x?.choices ?? []), x?.note?.trim() ?? ''].filter(Boolean).join(' ')
+
+/** Slovní zpětná vazba odvozená z dotazníku učitele (pro souhrny, SWOT a export). */
+export function feedbackOf(q: Partial<Record<TeacherQKey, TeacherAnswer>>): Feedback {
+  return { good: answerText(q.povedlo), todo: answerText(q.procvicit), next: answerText(q.dalsi) }
 }
 
 export function saveAssessment(draft: AssessmentDraft): Assessment {
   const existing = draft.id ? db.assessments.find((a) => a.id === draft.id) : undefined
+  const feedback = feedbackOf(draft.teacherQ)
+  const nextGoal = draft.nextGoal || draft.teacherQ.dalsi?.note?.trim() || draft.teacherQ.dalsi?.choices[0] || ''
   const a: Assessment = {
+    ...existing,
     ...draft,
+    feedback,
+    nextGoal,
+    status: draft.status ?? existing?.status ?? 'rozpracovane',
     id: existing?.id ?? uid('h'),
     selfCode: draft.selfCode ?? existing?.selfCode ?? null,
     createdAt: existing?.createdAt ?? now(),
@@ -217,16 +254,7 @@ export function saveAssessment(draft: AssessmentDraft): Assessment {
     else
       goals = [
         ...goals,
-        {
-          id: uid('g'),
-          studentId: a.studentId,
-          subjectId: a.subjectId,
-          text: a.nextGoal.trim(),
-          setOn: a.date,
-          due: addDaysISO(a.date, 14),
-          status: 'rozpracovany',
-          assessmentId: a.id,
-        },
+        { id: uid('g'), studentId: a.studentId, subjectId: a.subjectId, text: a.nextGoal.trim(), setOn: a.date, due: addDaysISO(a.date, 14), status: 'rozpracovany', assessmentId: a.id },
       ]
   } else if (linked) {
     goals = goals.filter((g) => g.id !== linked.id)
@@ -241,6 +269,43 @@ export function saveAssessment(draft: AssessmentDraft): Assessment {
   return a
 }
 
+/** Uloží formativní zprávu; schválením se hodnocení označí jako dokončené. */
+export function saveReport(assessmentId: string, report: Report, swot: Assessment['swot'], approve: boolean) {
+  const a = db.assessments.find((x) => x.id === assessmentId)
+  if (!a) return
+  const r: Report = approve ? { ...report, approved: true, approvedAt: now() } : { ...report, approved: false, approvedAt: null }
+  commit({
+    ...db,
+    assessments: db.assessments.map((x) => (x.id === assessmentId ? { ...x, report: r, swot, status: approve ? 'dokoncene' : x.status, updatedAt: now() } : x)),
+    audit: audit(db, approve ? 'schváleno' : 'upraveno', 'formativní hodnocení', `${studentName(db, a.studentId)} · ${a.topic || 'bez tématu'}`),
+  })
+}
+
+export function setSelfForm(assessmentId: string, form: SelfFormDef | undefined) {
+  commit({ ...db, assessments: db.assessments.map((x) => (x.id === assessmentId ? { ...x, selfForm: form, updatedAt: now() } : x)) })
+}
+
+// ─── Přílohy ─────────────────────────────────────────────────────────────────
+
+export async function addAttachment(assessmentId: string, owner: Attachment['owner'], file: File): Promise<Attachment> {
+  const att: Attachment = { id: uid('f'), assessmentId, owner, name: file.name, type: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
+  await putFile(att.id, file)
+  const a = db.assessments.find((x) => x.id === assessmentId)
+  commit({ ...db, attachments: [...db.attachments, att], audit: audit(db, 'vytvořeno', owner === 'zak' ? 'příloha žáka' : 'příloha', `${a ? studentName(db, a.studentId) : ''} · ${att.name}`) })
+  return att
+}
+
+export async function removeAttachment(id: string) {
+  const att = db.attachments.find((x) => x.id === id)
+  await deleteFile(id).catch(() => {})
+  commit({
+    ...db,
+    attachments: db.attachments.filter((x) => x.id !== id),
+    assessments: db.assessments.map((a) => (a.report?.attachments.includes(id) ? { ...a, report: { ...a.report, attachments: a.report.attachments.filter((x) => x !== id) } } : a)),
+    audit: audit(db, 'smazáno', 'příloha', att?.name ?? ''),
+  })
+}
+
 function addDaysISO(iso: string, n: number) {
   const [y, m, d] = iso.split('-').map(Number)
   const dt = new Date(y, m - 1, d + n)
@@ -249,10 +314,12 @@ function addDaysISO(iso: string, n: number) {
 
 export function deleteAssessment(id: string) {
   const a = db.assessments.find((x) => x.id === id)
+  db.attachments.filter((x) => x.assessmentId === id).forEach((x) => void deleteFile(x.id).catch(() => {}))
   commit({
     ...db,
     assessments: db.assessments.filter((x) => x.id !== id),
     selfAssessments: db.selfAssessments.filter((s) => s.assessmentId !== id),
+    attachments: db.attachments.filter((x) => x.assessmentId !== id),
     goals: db.goals.filter((g) => g.assessmentId !== id),
     audit: audit(db, 'smazáno', 'hodnocení', a ? `${studentName(db, a.studentId)} · ${a.topic}` : ''),
   })
@@ -303,7 +370,7 @@ export function checkSelfCode(code: string): CodeCheck {
   return { ok: true, assessment: a, correction: !!a.selfCodeCorrection, previous }
 }
 
-export function submitSelfAssessment(code: string, answers: SelfAnswers): boolean {
+export function submitSelfAssessment(code: string, answers: SelfAnswers, form: SelfFormDef): boolean {
   const check = checkSelfCode(code)
   if (!check.ok) return false
   const a = check.assessment
@@ -311,6 +378,7 @@ export function submitSelfAssessment(code: string, answers: SelfAnswers): boolea
   const entry: SelfAssessment = {
     id: prev?.id ?? uid('z'),
     assessmentId: a.id,
+    form,
     answers: { ...answers, nextWish: answers.nextWish.trim().slice(0, 500) },
     submittedAt: now(),
     corrections: prev ? (prev.corrections ?? 0) + 1 : 0,

@@ -10,9 +10,11 @@ import { fullName } from '../lib/util'
 import { Button, Card, Empty, Field, Input, PageHeader, Pill, Select, Tabs } from '../components/ui'
 
 const KIND_HELP: Record<SummaryKind, string> = {
-  tyden: 'Co žák zvládl, v čem se posunul, co procvičit a co udělat příště.',
-  mesic: 'Vývoj dovedností po týdnech, hlavní změny a plnění cílů.',
-  pololeti: 'Co se naučil, v čem se nejvíc zlepšil, co zvládá samostatně, kde potřebuje podporu a cíle do dalšího pololetí.',
+  tyden: 'Ze všech záznamů žáka a předmětu za týden: co zvládá, v čem se zlepšil, kde potřebuje podporu, splněné a doporučené cíle.',
+  mesic: 'Ze všech záznamů za měsíc, včetně vývoje dovedností po týdnech.',
+  pololeti: 'Ze všech záznamů za pololetí: pokrok, splněné cíle a cíle do dalšího pololetí.',
+  rok: 'Ze všech záznamů za školní rok a doporučení pro další rok.',
+  vlastni: 'Ze všech záznamů v zadaném období od–do.',
 }
 
 export default function Summaries() {
@@ -26,7 +28,8 @@ export default function Summaries() {
   const [filter, setFilter] = useState<'vse' | 'navrh' | 'schvaleno'>('vse')
 
   if (!subj) return <Empty title="Vyberte předmět" />
-  const per = periodFor(kind, anchor)
+  const [customTo, setCustomTo] = useState(today())
+  const per = kind === 'vlastni' ? { from: anchor, to: customTo, label: `${fmt(anchor)} – ${fmt(customTo)}` } : periodFor(kind, anchor)
   const targets = who === 'vsichni' ? students : students.filter((s) => s.id === who)
   const withData = targets.filter((s) =>
     db.assessments.some((a) => a.studentId === s.id && a.subjectId === subj.id && inRange(a.date, per.from, per.to)),
@@ -85,12 +88,21 @@ export default function Summaries() {
                 { value: 'tyden', label: 'Týdenní' },
                 { value: 'mesic', label: 'Měsíční' },
                 { value: 'pololeti', label: 'Pololetní' },
+                { value: 'rok', label: 'Roční' },
+                { value: 'vlastni', label: 'Vlastní' },
               ]}
             />
             <p className="text-sm text-ink-soft">{KIND_HELP[kind]}</p>
-            <Field label="Období" hint={`${per.label} (${fmt(per.from)} – ${fmt(per.to)})`}>
-              <Input id="souhrn-datum" type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} />
-            </Field>
+            {kind === 'vlastni' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Od"><Input id="souhrn-od" type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} /></Field>
+                <Field label="Do"><Input id="souhrn-do" type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></Field>
+              </div>
+            ) : (
+              <Field label="Období" hint={`${per.label} (${fmt(per.from)} – ${fmt(per.to)})`}>
+                <Input id="souhrn-datum" type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} />
+              </Field>
+            )}
             <Field label="Žák">
               <Select id="souhrn-zak" value={who} onChange={(e) => setWho(e.target.value)}>
                 <option value="vsichni">Celá třída {cls?.name} ({students.length} žáků)</option>

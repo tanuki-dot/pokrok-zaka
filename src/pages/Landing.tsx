@@ -17,17 +17,17 @@ import { cx } from '../components/ui'
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
 const STEPS = [
-  ['Vyberu žáka a předmět', 'Třída, předmět, žák a datum. Téma hodiny se převezme z minula.'],
-  ['Stanovím vzdělávací cíl', 'Cíl hodiny a jeho splnění: splněno, částečně, nesplněno. Cíl jde navrhnout z předchozích záznamů.'],
-  ['Ohodnotím vybrané dovednosti', 'Vyberu, co v hodině sleduji, a kliknu na úroveň 1–5. Ostatní zůstane nehodnoceno.'],
-  ['Žák se ohodnotí sám', 'Krátký dotazník přes QR kód – 6 otázek, 1–2 minuty, bez účtu.'],
-  ['Uložím hodnocení', 'SWOT a formativní hodnocení se vytvoří samy, učitel je jen upraví.'],
+  ['Údaje o žákovi a cíl', 'Žák, třída, předmět, hodnocené období (hodina až školní rok), tematický celek ŠVP a vzdělávací cíle.'],
+  ['Hodnocení učitele', 'Vybrané dovednosti na škále 1–5 s komentářem, krátký dotazník podle období a splnění každého cíle.'],
+  ['Sebehodnocení žáka', 'Dotazník přes QR kód nebo odkaz – otázky odpovídají období, žák může přiložit svou práci.'],
+  ['Formativní hodnocení', 'Zpráva pro žáka a rodiče v krátké, střední nebo dlouhé verzi a individuální rozvoj žáka.'],
+  ['Kontrola a historie', 'Učitel zprávu upraví a schválí, pokrok žáka sleduje v historii a grafech.'],
 ]
 
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Users size={22} />, title: 'Evidence', text: 'Školy, třídy, žáci a předměty. Seznam žáků nahrajete z Excelu.' },
-  { icon: <ClipboardCheck size={22} />, title: 'Hodnocení 1–5', text: 'Sedm základních oblastí pro všechny předměty a k nim vlastní kritéria. 1 = nejnižší, 5 = nejvyšší.' },
-  { icon: <Grid2x2 size={22} />, title: 'SWOT a formativní hodnocení', text: 'Vzniká automaticky z hodnocení učitele, sebehodnocení žáka a zpětné vazby, včetně doporučení pro další rozvoj.' },
+  { icon: <ClipboardCheck size={22} />, title: 'Hodnocení 1–5', text: 'Deset dovedností pro všechny předměty a vlastní dovednosti. 1 = výborně … 5 = zatím nezvládá.' },
+  { icon: <Grid2x2 size={22} />, title: 'Individuální rozvoj žáka', text: 'Co žák zvládá, co potřebuje zlepšit, možnosti rozvoje a překážky v učení – vytvoří se automaticky a učitel je upraví.' },
   { icon: <CalendarRange size={22} />, title: 'Týden · Měsíc · Pololetí', text: 'Souhrny a slovní hodnocení se skládají z krátkých záznamů. Učitel je upraví a schválí.' },
   { icon: <QrCode size={22} />, title: 'Sebehodnocení žáka', text: 'Jeden univerzální dotazník pro všechny předměty. Žák odpoví přes QR kód, odpovědi vidíte vedle svého hodnocení.' },
   { icon: <FileDown size={22} />, title: 'Výstupy', text: 'Tisk do PDF, export do Excelu a přehled třídy i celé školy.' },
@@ -35,16 +35,16 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
 
 const PRINCIPLES = [
   ['Žák se porovnává sám se sebou', 'Graf ukazuje vývoj jedné dovednosti v čase, ne pořadí ve třídě.'],
-  ['Čísla nejsou známky', 'Úroveň 1–5 popisuje aktuální zvládnutí dovednosti. 5 znamená nejvyšší.'],
+  ['Čísla nejsou známky', 'Úroveň 1–5 popisuje aktuální zvládnutí dovednosti: 1 = výborně, 5 = zatím nezvládá.'],
   ['Aplikace nic nedomýšlí', 'Souhrny vznikají jen z uložených záznamů a u každé věty je vidět, odkud pochází.'],
   ['Rozhoduje učitel', 'Návrh slovního hodnocení učitel upraví a schválí. Tisknout jde jen schválená verze.'],
 ]
 
-/** Ukázka z praxe: samostatnost 2 → 3 → 3 → 4 za čtyři týdny (1 = nejnižší, 5 = nejvyšší). */
+/** Ukázka z praxe: samostatnost 4 → 3 → 3 → 2 za čtyři týdny (1 = výborně, 5 = zatím nezvládá). */
 function HeroCard() {
-  const weeks = [2, 3, 3, 4]
+  const weeks = [4, 3, 3, 2]
   const x = (i: number) => 34 + i * 76
-  const y = (l: number) => 14 + (5 - l) * 24 // 5 nahoře
+  const y = (l: number) => 14 + (l - 1) * 24 // 1 (výborně) nahoře
   const path = weeks.map((l, i) => `${i ? 'L' : 'M'}${x(i)},${y(l)}`).join(' ')
   return (
     <div className="relative mx-auto w-full max-w-[460px]">
@@ -64,13 +64,13 @@ function HeroCard() {
             <div className="font-semibold">Samostatnost</div>
             <div className="text-sm text-ink-faint">Zvládne pracovat bez pomoci?</div>
           </div>
-          <div className="flex gap-1.5" aria-label="Vybraná úroveň 4 z 5">
+          <div className="flex gap-1.5" aria-label="Vybraná úroveň 2 – velmi dobře">
             {LEVELS.map(({ level }) => (
               <span
                 key={level}
                 className={cx(
                   'tabular grid h-9 w-9 place-items-center rounded-xl border text-sm font-bold',
-                  level === 4 ? 'border-transparent bg-ink text-surface shadow-md' : 'border-line text-ink-faint',
+                  level === 2 ? 'border-transparent bg-ink text-surface shadow-md' : 'border-line text-ink-faint',
                 )}
               >
                 {level}
@@ -80,8 +80,8 @@ function HeroCard() {
         </div>
 
         <figure className="mt-5 rounded-2xl bg-canvas px-3 pb-2 pt-3">
-          <svg viewBox="0 0 280 124" className="h-auto w-full" role="img" aria-label="Samostatnost po týdnech: 2, 3, 3, 4. Vyšší číslo znamená vyšší zvládnutí.">
-            <rect x="24" y="2" width="248" height="36" rx="6" fill="var(--color-lv5)" fillOpacity="0.08" />
+          <svg viewBox="0 0 280 124" className="h-auto w-full" role="img" aria-label="Samostatnost po týdnech: 4, 3, 3, 2. Nižší číslo znamená lepší zvládnutí, zlepšení proto stoupá.">
+            <rect x="24" y="2" width="248" height="36" rx="6" fill="var(--color-lv1)" fillOpacity="0.08" />
             {[1, 2, 3, 4, 5].map((l) => (
               <g key={l}>
                 <line x1="24" x2="272" y1={y(l)} y2={y(l)} stroke="var(--color-line)" strokeWidth="1" />
@@ -97,7 +97,7 @@ function HeroCard() {
             {weeks.map((_, i) => <span key={i}>{i + 1}. týden</span>)}
           </figcaption>
         </figure>
-        <p className="mt-2 text-xs text-ink-faint">2 → 3 → 3 → 4: z „s výraznou pomocí“ na „zvládá samostatně“.</p>
+        <p className="mt-2 text-xs text-ink-faint">4 → 3 → 3 → 2: z „potřebuje výraznou pomoc“ na „velmi dobře“.</p>
 
         <div className="mt-4 rounded-2xl border border-line p-3 text-sm">
           <span className="font-semibold text-sea-700">Další krok:</span> Samostatně vypočítat průměr pěti čísel.
@@ -144,7 +144,7 @@ export default function Landing() {
       {/* Hero */}
       <section className="mx-auto grid max-w-[1160px] items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-24 lg:pt-20">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Pro základní a střední školy</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Formativní hodnocení a sledování individuálního pokroku · ZŠ a SŠ</p>
           <h1 className="mt-4 text-[clamp(2.25rem,6vw,3.75rem)] font-bold leading-[1.05]">
             Formativní hodnocení, které stihnete v&nbsp;každé hodině.
           </h1>
@@ -154,7 +154,7 @@ export default function Landing() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               onClick={() => openDemo()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white shadow-[0_10px_24px_-12px_rgba(238,116,36,.9)] hover:bg-brand-600"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white shadow-[0_10px_24px_-12px_rgba(14,148,136,.8)] hover:bg-brand-600"
             >
               Vyzkoušet demo <ArrowRight size={18} />
             </button>

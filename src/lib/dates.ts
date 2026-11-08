@@ -55,6 +55,11 @@ export function periodFor(kind: SummaryKind, anchor: string): Period {
     const to = toISO(new Date(d.getFullYear(), d.getMonth() + 1, 0))
     return { from, to, label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}` }
   }
+  if (kind === 'rok') {
+    const y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1
+    return { from: `${y}-09-01`, to: `${y + 1}-06-30`, label: `školní rok ${y}/${y + 1}` }
+  }
+  if (kind === 'vlastni') return { from: anchor, to: anchor, label: fmt(anchor) }
   // Pololetí: 1. pololetí 1. 9. – 31. 1., 2. pololetí 1. 2. – 30. 6.
   const m = d.getMonth()
   if (m >= 8 || m === 0) {
@@ -71,6 +76,8 @@ export const KIND_LABEL: Record<SummaryKind, string> = {
   tyden: 'Týdenní',
   mesic: 'Měsíční',
   pololeti: 'Pololetní',
+  rok: 'Roční',
+  vlastni: 'Za vlastní období',
 }
 
 export const weekLabel = (iso: string) => `${fmtShort(weekStart(iso))}`

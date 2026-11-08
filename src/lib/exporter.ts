@@ -3,9 +3,10 @@ import type { DB } from './types'
 import { fullName } from './util'
 import { KIND_LABEL } from './dates'
 import { GOAL_STATUS_LABEL } from './analysis'
-import { describe } from './questionnaire'
+import { describeSelf } from './questionnaire'
+import { periodLabel, PERIOD_LABEL } from './periods'
 
-/** Řádky pro export – jedna řada = jedno hodnocení, kritéria jako sloupce (1 = nejnižší, 5 = nejvyšší, prázdné = nehodnoceno). */
+/** Řádky pro export – jedna řada = jedno hodnocení, dovednosti jako sloupce (1 = výborně … 5 = zatím nezvládá, prázdné = nehodnoceno). */
 export function buildSheets(db: DB, subjectId: string | 'vse') {
   const subjects = subjectId === 'vse' ? db.subjects : db.subjects.filter((s) => s.id === subjectId)
   const sIds = new Set(subjects.map((s) => s.id))
@@ -23,28 +24,32 @@ export function buildSheets(db: DB, subjectId: string | 'vse') {
       Třída: cl(s?.classId),
       Předmět: sub(a.subjectId),
       Žák: s ? fullName(s) : '',
+      'Typ období': PERIOD_LABEL[a.periodType],
+      Období: periodLabel(a.periodType, a.periodFrom, a.periodTo),
+      'Tematické celky': a.units.map((id) => db.units.find((u) => u.id === id)?.name ?? '').filter(Boolean).join('; '),
       Téma: a.topic,
-      'Vzdělávací cíl': a.goal,
-      'Splnění cíle': a.goalStatus ? GOAL_STATUS_LABEL[a.goalStatus] : '',
+      'Vzdělávací cíle': a.goals.map((g) => `${g.text} (${g.status ? GOAL_STATUS_LABEL[g.status] : 'neoznačeno'})`).join('; '),
+      Stav: a.status === 'dokoncene' ? 'dokončeno' : 'rozpracováno',
     }
     for (const c of crit) row[c.name] = a.scores[c.id] ?? ''
     Object.assign(row, {
       'Co se povedlo': a.feedback.good,
       'Co procvičit': a.feedback.todo,
       'Další krok': a.feedback.next,
-      'SWOT – silné stránky': a.swot.s,
-      'SWOT – oblasti ke zlepšení': a.swot.w,
-      'SWOT – příležitosti': a.swot.o,
-      'SWOT – překážky': a.swot.t,
-      'Doporučení': a.swot.rec ?? '',
-      'Formativní hodnocení': a.formative ?? '',
+      'Co žák zvládá': a.swot.s,
+      'Co potřebuje zlepšit': a.swot.w,
+      'Možnosti dalšího rozvoje': a.swot.o,
+      'Překážky v učení': a.swot.t,
+      'Formativní hodnocení': a.report?.text ?? '',
+      'Formativní hodnocení schváleno': a.report?.approved ? 'ano' : 'ne',
       'Další cíl': a.nextGoal,
-      'Sebehodnocení: porozumění': self?.answers ? describe.understanding(self.answers.understanding) : '',
-      'Sebehodnocení: práce': self?.answers ? describe.work(self.answers.work) : '',
-      'Sebehodnocení: povedlo se': self?.answers ? describe.wentWell(self.answers.wentWell).join(' ') : self?.wentWell ?? '',
-      'Sebehodnocení: zlepšit': self?.answers ? describe.improve(self.answers.improve).join(' ') : self?.needHelp ?? '',
-      'Sebehodnocení: cíl hodiny': self?.answers ? describe.goalMet(self.answers.goalMet) : '',
-      'Sebehodnocení: příště': self?.answers ? self.answers.nextWish : self?.nextWant ?? '',
+      'Sebehodnocení: porozumění': self?.answers ? describeSelf(self).understanding : '',
+      'Sebehodnocení: práce': self?.answers ? describeSelf(self).work : '',
+      'Sebehodnocení: povedlo se': self?.answers ? describeSelf(self).wentWell.join(' ') : self?.wentWell ?? '',
+      'Sebehodnocení: zlepšit': self?.answers ? describeSelf(self).improve.join(' ') : self?.needHelp ?? '',
+      'Sebehodnocení: cíle': self?.answers ? describeSelf(self).goalMet : '',
+      'Sebehodnocení: vlastní odpověď': self?.answers ? self.answers.nextWish : self?.nextWant ?? '',
+      Přílohy: db.attachments.filter((x) => x.assessmentId === a.id).map((x) => x.name).join('; '),
     })
     return row
   })

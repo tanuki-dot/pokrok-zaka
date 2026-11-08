@@ -2,7 +2,10 @@ import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-do
 import { Layout } from './components/Layout'
 import { useDB } from './lib/store'
 import Dashboard from './pages/Dashboard'
-import AssessmentForm from './pages/AssessmentForm'
+import Wizard from './pages/eval/Wizard'
+import History from './pages/History'
+import Portfolio from './pages/Portfolio'
+import PrintAssessment from './pages/PrintAssessment'
 import Students from './pages/Students'
 import StudentDetail from './pages/StudentDetail'
 import ClassOverview from './pages/ClassOverview'
@@ -29,6 +32,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/sebehodnoceni/:code" element={<SelfAssessmentPage />} />
+        <Route path="/tisk/hodnoceni/:id" element={<PrintAssessment />} />
         <Route path="/tisk/:id" element={<PrintSummary />} />
       </Routes>
     )
@@ -49,8 +53,12 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/prehled" element={<Dashboard />} />
-        <Route path="/hodnoceni/nove" element={<FormKeyed />} />
-        <Route path="/hodnoceni/:id" element={<FormKeyed />} />
+        <Route path="/hodnoceni/nove" element={<WizardKeyed />} />
+        <Route path="/hodnoceni/:id" element={<WizardKeyed />} />
+        <Route path="/hodnoceni/:id/:step" element={<WizardKeyed />} />
+        <Route path="/historie" element={<History />} />
+        <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/zaci/novy" element={<Navigate to="/hodnoceni/nove?novy=1" replace />} />
         <Route path="/zaci" element={<Students />} />
         <Route path="/zaci/:id" element={<StudentDetail />} />
         <Route path="/trida" element={<ClassOverview />} />
@@ -66,9 +74,9 @@ export default function App() {
   )
 }
 
-/** Každá navigace na formulář = čistý stav (nový žák, jiný záznam). */
-function FormKeyed() {
+/** Nové hodnocení = vždy čistý formulář; u existujícího záznamu se stav drží podle id. */
+function WizardKeyed() {
   const { id } = useParams()
   const loc = useLocation()
-  return <AssessmentForm key={id ?? `nove-${loc.key}`} />
+  return <Wizard key={id ?? `nove-${loc.key}`} />
 }

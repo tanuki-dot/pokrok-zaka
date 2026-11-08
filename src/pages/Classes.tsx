@@ -2,8 +2,9 @@ import { useState } from 'react'
 import * as XLSX from 'xlsx'
 import { ArrowLeftRight, FileSpreadsheet, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
-import { addClass, addStudents, addSubject, removeStudent, removeSubject, setClassWording } from '../lib/store'
-import { QUESTIONS, Q_UNDERSTANDING, WORDING_LABEL } from '../lib/questionnaire'
+import { addClass, addStudents, addSubject, removeStudent, removeSubject, setClassInfo, setClassWording } from '../lib/store'
+import { selfFormFor, WORDING_LABEL } from '../lib/questionnaire'
+import { today } from '../lib/dates'
 import type { SelfWording } from '../lib/types'
 import { setSelection } from '../lib/selection'
 import { Button, Card, Empty, Field, Input, PageHeader, Pill, Textarea } from '../components/ui'
@@ -109,6 +110,18 @@ export default function Classes() {
           <Empty title="Založte první třídu" />
         ) : (
           <div className="flex min-w-0 flex-col gap-4">
+            <Card title={`Údaje o třídě ${cls.name}`}>
+              <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
+                <Field label="Ročník">
+                  <Input id="trida-rocnik" type="number" min={1} max={13} value={cls.grade ?? ''} onChange={(e) => setClassInfo(cls.id, { grade: e.target.value ? +e.target.value : undefined, field: cls.field })} />
+                </Field>
+                <Field label="Obor (SŠ)">
+                  <Input id="trida-obor" value={cls.field ?? ''} placeholder="Např. Mechanik elektrotechnik" onChange={(e) => setClassInfo(cls.id, { grade: cls.grade, field: e.target.value || undefined })} />
+                </Field>
+              </div>
+              <p className="mt-2 text-xs text-ink-faint">Podle předmětu, oboru a ročníku se nabízejí tematické celky ŠVP.</p>
+            </Card>
+
             <Card title={`Předměty ve třídě ${cls.name}`}>
               <div className="mb-4 flex flex-wrap gap-2">
                 {subjects.length === 0 && <span className="text-sm text-ink-faint">Zatím žádný předmět.</span>}
@@ -210,7 +223,7 @@ export default function Classes() {
                       className={`rounded-xl border p-3 text-left ${on ? 'border-sea-500 bg-sea-50' : 'border-line hover:border-ink-faint'}`}
                     >
                       <div className="font-semibold">{WORDING_LABEL[w]}</div>
-                      <div className="mt-1 text-sm text-ink-soft">„{QUESTIONS.understanding[w]}“ – {Q_UNDERSTANDING[1].label[w]}</div>
+                      <div className="mt-1 text-sm text-ink-soft">„{selfFormFor('hodina', today(), today(), w).understanding.title}“ – {selfFormFor('hodina', today(), today(), w).understanding.options[1].label}</div>
                     </button>
                   )
                 })}
