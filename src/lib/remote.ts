@@ -55,7 +55,7 @@ export const TABLES: Record<Key, TableSpec> = {
   },
   selfAssessments: { table: 'self_assessments', fields: f('id', 'assessmentId', 'answers', 'form', 'submittedAt', 'corrections') },
   attachments: { table: 'attachments', fields: f('id', 'assessmentId', 'owner', 'name', 'type', 'size', 'addedAt') },
-  documents: { table: 'documents', fields: f('id', 'studentId', 'kind', 'name', 'mime', 'size', 'addedAt') },
+  documents: { table: 'documents', fields: f('id', 'scope', 'studentId', 'schoolId', 'subjectId', 'kind', 'name', 'mime', 'size', 'addedAt') },
   goals: { table: 'goals', fields: f('id', 'studentId', 'subjectId', 'assessmentId', 'text', 'setOn', 'due', 'status') },
   summaries: {
     table: 'summaries',
@@ -233,6 +233,22 @@ export async function downloadDoc(studentId: string, id: string): Promise<Blob |
 }
 export async function removeDoc(studentId: string, id: string) {
   await sb!.storage.from(BUCKET_DOCS).remove([docPath(studentId, id)])
+}
+
+// Školní dokumenty (ŠVP, plány) – cesta skola/<school_id>/<document_id>.
+export const schoolDocPath = (schoolId: string, id: string) => `skola/${schoolId}/${id}`
+export async function uploadSchoolDoc(schoolId: string, id: string, blob: Blob) {
+  await flush()
+  const { error } = await sb!.storage.from(BUCKET_DOCS).upload(schoolDocPath(schoolId, id), blob, { contentType: blob.type || 'application/octet-stream', upsert: true })
+  if (error) throw new Error('Dokument se nepodařilo nahrát na server.')
+}
+export async function downloadSchoolDoc(schoolId: string, id: string): Promise<Blob | undefined> {
+  const { data, error } = await sb!.storage.from(BUCKET_DOCS).download(schoolDocPath(schoolId, id))
+  if (error) return undefined
+  return data
+}
+export async function removeSchoolDoc(schoolId: string, id: string) {
+  await sb!.storage.from(BUCKET_DOCS).remove([schoolDocPath(schoolId, id)])
 }
 
 // ─── Sebehodnocení žáka (bez přihlášení, jen přes kód) ───────────────────────

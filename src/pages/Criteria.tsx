@@ -5,6 +5,7 @@ import { addCriterion, addPhrase, addUnit, removeCriterion, removePhrase, remove
 import { unitsFor } from '../lib/catalog'
 import type { Feedback } from '../lib/types'
 import { Button, Card, cx, Empty, Field, Input, PageHeader, Pill, Select } from '../components/ui'
+import { SchoolDocuments } from '../components/SchoolDocuments'
 
 const KIND: Record<keyof Feedback, string> = { good: 'Co se povedlo', todo: 'Co procvičit', next: 'Další krok' }
 
@@ -32,6 +33,7 @@ export default function CriteriaPage() {
         subtitle={`Co budete v předmětu ${subj.name.toLowerCase()} hodnotit. Společné dovednosti platí pro všechny předměty, nerelevantní vypněte, vlastní přidejte.`}
       />
       <div className="grid gap-4 xl:grid-cols-2">
+        {school && <SchoolDocuments schoolId={school.id} subjectId={subj.id} />}
         <Card title="Společné dovednosti" action={<span className="text-sm text-ink-faint">vypnutím je skryjete jen v tomto předmětu</span>}>
           <ul className="flex flex-col divide-y divide-line">
             {defaults.map((c) => {

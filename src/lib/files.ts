@@ -7,8 +7,9 @@
 
 import type { Attachment, Document } from './types'
 import {
-  downloadDoc as remoteDownloadDoc, downloadFile as remoteDownload, remoteEnabled, removeDoc as remoteRemoveDoc,
-  removeFile as remoteRemove, uploadDoc as remoteUploadDoc, uploadFile as remoteUpload,
+  downloadDoc as remoteDownloadDoc, downloadFile as remoteDownload, downloadSchoolDoc as remoteDownloadSchoolDoc,
+  remoteEnabled, removeDoc as remoteRemoveDoc, removeFile as remoteRemove, removeSchoolDoc as remoteRemoveSchoolDoc,
+  uploadDoc as remoteUploadDoc, uploadFile as remoteUpload, uploadSchoolDoc as remoteUploadSchoolDoc,
 } from './remote'
 
 const DB_NAME = 'pokrok-zaka-prilohy'
@@ -46,14 +47,22 @@ export const getFile = (att: Ref): Promise<Blob | undefined> =>
   remoteEnabled ? remoteDownload(att.assessmentId, att.id) : tx<Blob | undefined>('readonly', (s) => s.get(att.id) as IDBRequest<Blob | undefined>)
 export const deleteFile = async (att: Ref) => (remoteEnabled ? remoteRemove(att.assessmentId, att.id) : void (await tx('readwrite', (s) => s.delete(att.id))))
 
-// ─── Podpůrné dokumenty žáka (stejné úložiště, klíč = id, cesta = <student_id>/<id>) ──
-type DocRef = Pick<Document, 'id' | 'studentId'>
+// ─── Dokumenty (žákovské i školní). Demo: IndexedDB podle id. Server: bucket „dokumenty“
+//     s cestou <student_id>/<id> (žák) nebo skola/<school_id>/<id> (škola). ──
+type DocRef = Pick<Document, 'id' | 'scope' | 'studentId' | 'schoolId'>
+
+const upDoc = (doc: DocRef, blob: Blob) =>
+  doc.scope === 'skola' ? remoteUploadSchoolDoc(doc.schoolId!, doc.id, blob) : remoteUploadDoc(doc.studentId!, doc.id, blob)
+const dlDoc = (doc: DocRef) =>
+  doc.scope === 'skola' ? remoteDownloadSchoolDoc(doc.schoolId!, doc.id) : remoteDownloadDoc(doc.studentId!, doc.id)
+const rmDoc = (doc: DocRef) =>
+  doc.scope === 'skola' ? remoteRemoveSchoolDoc(doc.schoolId!, doc.id) : remoteRemoveDoc(doc.studentId!, doc.id)
 
 export const putDoc = async (doc: DocRef, blob: Blob) =>
-  remoteEnabled ? remoteUploadDoc(doc.studentId, doc.id, blob) : void (await tx('readwrite', (s) => s.put(blob, doc.id)))
+  remoteEnabled ? upDoc(doc, blob) : void (await tx('readwrite', (s) => s.put(blob, doc.id)))
 export const getDoc = (doc: DocRef): Promise<Blob | undefined> =>
-  remoteEnabled ? remoteDownloadDoc(doc.studentId, doc.id) : tx<Blob | undefined>('readonly', (s) => s.get(doc.id) as IDBRequest<Blob | undefined>)
-export const deleteDoc = async (doc: DocRef) => (remoteEnabled ? remoteRemoveDoc(doc.studentId, doc.id) : void (await tx('readwrite', (s) => s.delete(doc.id))))
+  remoteEnabled ? dlDoc(doc) : tx<Blob | undefined>('readonly', (s) => s.get(doc.id) as IDBRequest<Blob | undefined>)
+export const deleteDoc = async (doc: DocRef) => (remoteEnabled ? rmDoc(doc) : void (await tx('readwrite', (s) => s.delete(doc.id))))
 
 export async function openDoc(doc: DocRef) {
   const blob = await getDoc(doc)

@@ -6,7 +6,7 @@ import type { DocKind } from '../lib/types'
 import { Card, Pill, Select } from './ui'
 import { ConfirmDialog } from './ConfirmDialog'
 
-const KIND_LABEL: Record<DocKind, string> = {
+const KIND_LABEL: Partial<Record<DocKind, string>> = {
   plpp: 'PLPP',
   ivp: 'IVP',
   ppp: 'Doporučení PPP',
@@ -69,7 +69,7 @@ export function StudentDocuments({ studentId }: { studentId: string }) {
         <ul className="mt-3 flex flex-col gap-2">
           {docs.map((d) => (
             <li key={d.id} className="flex items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2">
-              <Pill tone="sea">{KIND_LABEL[d.kind]}</Pill>
+              <Pill tone="sea">{KIND_LABEL[d.kind] ?? 'Jiné'}</Pill>
               <Paperclip size={16} className="shrink-0 text-ink-faint" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">{d.name}</div>

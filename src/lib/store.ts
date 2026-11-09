@@ -355,9 +355,16 @@ export async function removeAttachment(id: string) {
 // ─── Podpůrné dokumenty žáka (PLPP, IVP, PPP, SPC …) ─────────────────────────
 
 export async function addDocument(studentId: string, kind: DocKind, file: File): Promise<Document> {
-  const doc: Document = { id: uid('doc'), studentId, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
+  const doc: Document = { id: uid('doc'), scope: 'zak', studentId, schoolId: null, subjectId: null, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
   await putDoc(doc, file)
   commit({ ...db, documents: [...db.documents, doc], audit: audit(db, 'vytvořeno', 'dokument žáka', `${studentName(db, studentId)} · ${doc.name}`) })
+  return doc
+}
+
+export async function addSchoolDocument(schoolId: string, subjectId: string | null, kind: DocKind, file: File): Promise<Document> {
+  const doc: Document = { id: uid('doc'), scope: 'skola', studentId: null, schoolId, subjectId, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
+  await putDoc(doc, file)
+  commit({ ...db, documents: [...db.documents, doc], audit: audit(db, 'vytvořeno', 'školní dokument', doc.name) })
   return doc
 }
 

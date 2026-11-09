@@ -207,14 +207,18 @@ export interface Attachment {
   addedAt: string
 }
 
-/** Druh podpůrného dokumentu žáka (podpůrná opatření). */
-export type DocKind = 'plpp' | 'ivp' | 'ppp' | 'spc' | 'jine'
+/** Druh dokumentu: podpůrná opatření žáka (plpp…spc), školní ŠVP/plán (svp, plan), jiné. */
+export type DocKind = 'plpp' | 'ivp' | 'ppp' | 'spc' | 'svp' | 'plan' | 'jine'
 
-/** Podpůrný dokument žáka (PLPP, IVP, doporučení PPP/SPC …). Obsah souboru je v úložišti,
- *  tady jen popis. Vázaný na žáka, ne na konkrétní hodnocení. */
+/** Dokument. Buď podpůrný dokument žáka (scope 'zak', PLPP/IVP/PPP/SPC), nebo školní
+ *  dokument (scope 'skola', ŠVP a tematické plány, volitelně vázané na předmět).
+ *  Obsah souboru je v úložišti, tady jen popis. */
 export interface Document {
   id: string
-  studentId: string
+  scope: 'zak' | 'skola'
+  studentId: string | null
+  schoolId: string | null
+  subjectId: string | null
   kind: DocKind
   name: string
   mime: string
