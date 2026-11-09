@@ -223,6 +223,44 @@ export function removeStudent(id: string) {
   })
 }
 
+/** #10: Přesun žáka do jiné třídy beze ztráty historie. Hodnocení, cíle a souhrny
+ *  žáka se přemapují na stejnojmenný předmět cílové třídy (chybějící se založí),
+ *  takže pokrok plynule pokračuje i v další třídě či školním roce. */
+export function moveStudent(studentId: string, targetClassId: string) {
+  const st = db.students.find((s) => s.id === studentId)
+  if (!st || st.classId === targetClassId) return
+  const target = db.classes.find((c) => c.id === targetClassId)
+  if (!target) return
+  const used = new Set<string>([
+    ...db.assessments.filter((a) => a.studentId === studentId).map((a) => a.subjectId),
+    ...db.goals.filter((g) => g.studentId === studentId).map((g) => g.subjectId),
+    ...db.summaries.filter((s) => s.studentId === studentId).map((s) => s.subjectId),
+  ])
+  let subjects = db.subjects
+  const map = new Map<string, string>()
+  for (const sid of used) {
+    const os = db.subjects.find((p) => p.id === sid)
+    if (!os || os.classId === targetClassId) continue
+    let ns = subjects.find((p) => p.classId === targetClassId && p.name.toLowerCase() === os.name.toLowerCase())
+    if (!ns) {
+      ns = { id: uid('p'), classId: targetClassId, name: os.name, hiddenDefaults: os.hiddenDefaults }
+      subjects = [...subjects, ns]
+    }
+    map.set(os.id, ns.id)
+  }
+  const re = (sid: string) => map.get(sid) ?? sid
+  commit({
+    ...db,
+    subjects,
+    students: db.students.map((s) => (s.id === studentId ? { ...s, classId: targetClassId } : s)),
+    assessments: db.assessments.map((a) => (a.studentId === studentId ? { ...a, subjectId: re(a.subjectId) } : a)),
+    goals: db.goals.map((g) => (g.studentId === studentId ? { ...g, subjectId: re(g.subjectId) } : g)),
+    summaries: db.summaries.map((s) => (s.studentId === studentId ? { ...s, subjectId: re(s.subjectId) } : s)),
+    documents: db.documents.map((d) => (d.studentId === studentId && d.subjectId ? { ...d, subjectId: re(d.subjectId) } : d)),
+    audit: audit(db, 'upraveno', 'žák', `${studentName(db, studentId)}: přesun do ${target.name}`),
+  })
+}
+
 // ─── Kritéria (KROK 2) ───────────────────────────────────────────────────────
 
 export function addCriterion(subjectId: string, name: string, question: string): Criterion {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as XLSX from 'xlsx'
 import { ArrowLeftRight, FileSpreadsheet, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
-import { addClass, addStudents, addSubject, removeStudent, removeSubject, setClassInfo, setClassWording } from '../lib/store'
+import { addClass, addStudents, addSubject, moveStudent, removeStudent, removeSubject, setClassInfo, setClassWording } from '../lib/store'
 import { selfFormFor, WORDING_LABEL } from '../lib/questionnaire'
 import { today } from '../lib/dates'
 import type { SelfWording } from '../lib/types'
@@ -44,7 +44,9 @@ export default function Classes() {
   const [fileName, setFileName] = useState('')
   const [err, setErr] = useState('')
   const [confirmDel, setConfirmDel] = useState('')
+  const [moveId, setMoveId] = useState('')
   const school = db.schools.find((s) => s.type === type)
+  const otherClasses = db.classes.filter((c) => c.id !== cls?.id)
 
   async function onFile(f: File) {
     setErr('')
@@ -236,19 +238,44 @@ export default function Classes() {
               ) : (
                 <ul className="grid gap-x-6 sm:grid-cols-2 xl:grid-cols-3">
                   {students.map((s) => (
-                    <li key={s.id} className="flex items-center gap-2 border-b border-line py-2 text-[15px]">
+                    <li key={s.id} className="flex flex-wrap items-center gap-2 border-b border-line py-2 text-[15px]">
                       <span className="min-w-0 flex-1 truncate">{s.lastName} {s.firstName}</span>
                       {confirmDel === s.id ? (
                         <span className="flex gap-2 text-xs">
                           <button className="font-semibold text-bad" onClick={() => { removeStudent(s.id); setConfirmDel('') }}>smazat i záznamy</button>
                           <button className="text-ink-faint" onClick={() => setConfirmDel('')}>zpět</button>
                         </span>
+                      ) : moveId === s.id ? (
+                        <span className="flex w-full items-center gap-2 text-xs">
+                          <select
+                            aria-label={`Přesunout ${s.firstName} ${s.lastName} do třídy`}
+                            className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-xs"
+                            defaultValue=""
+                            onChange={(e) => { if (e.target.value) { moveStudent(s.id, e.target.value); setMoveId('') } }}
+                          >
+                            <option value="" disabled>Přesunout do třídy…</option>
+                            {db.schools.map((sc) => (
+                              <optgroup key={sc.id} label={sc.type === 'ZS' ? 'ZŠ' : 'SŠ'}>
+                                {db.classes.filter((c) => c.schoolId === sc.id && c.id !== s.classId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              </optgroup>
+                            ))}
+                          </select>
+                          <button className="text-ink-faint" onClick={() => setMoveId('')}>zpět</button>
+                        </span>
                       ) : (
-                        <button className="p-1 text-ink-faint hover:text-bad" aria-label={`Odebrat ${s.firstName} ${s.lastName}`} onClick={() => setConfirmDel(s.id)}><Trash2 size={14} /></button>
+                        <>
+                          {otherClasses.length > 0 && (
+                            <button className="p-1 text-ink-faint hover:text-sea-600" aria-label={`Přesunout ${s.firstName} ${s.lastName}`} title="Přesunout do jiné třídy (zachová historii)" onClick={() => setMoveId(s.id)}><ArrowLeftRight size={14} /></button>
+                          )}
+                          <button className="p-1 text-ink-faint hover:text-bad" aria-label={`Odebrat ${s.firstName} ${s.lastName}`} onClick={() => setConfirmDel(s.id)}><Trash2 size={14} /></button>
+                        </>
                       )}
                     </li>
                   ))}
                 </ul>
+              )}
+              {students.length > 0 && otherClasses.length > 0 && (
+                <p className="mt-3 text-xs text-ink-faint">Ikonou <ArrowLeftRight size={12} className="inline" /> přesunete žáka do jiné třídy. Jeho dřívější hodnocení, cíle i souhrny se zachovají a pokračují u stejnojmenného předmětu v nové třídě.</p>
               )}
             </Card>
           </div>
