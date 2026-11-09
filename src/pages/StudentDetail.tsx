@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowLeft, ClipboardPen, CopyPlus, FileText, Pencil, UserCheck } from 'lucide-react'
+import { ArrowLeft, ClipboardPen, CopyPlus, FileText, Pencil, Printer, UserCheck } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { setSelection } from '../lib/selection'
 import { setGoalStatus, setSchoolType } from '../lib/store'
@@ -219,6 +219,7 @@ export default function StudentDetail() {
         subtitle={`Třída ${cls?.name} · ${subj?.name ?? '–'} · ${as.length} hodnocení. Žáka porovnáváme s jeho vlastním dřívějším výkonem.`}
         actions={
           <>
+            {as.length > 0 && <a href={`#/tisk/zak/${st.id}`} target="_blank" rel="noreferrer"><Button><Printer size={16} /> Tisk historie</Button></a>}
             <Link to={`/souhrny?zak=${st.id}`}><Button><FileText size={16} /> Vytvořit souhrn</Button></Link>
             <Link to={`/hodnoceni/nove?zak=${st.id}`}><Button variant="brand"><ClipboardPen size={16} /> Nové hodnocení</Button></Link>
           </>

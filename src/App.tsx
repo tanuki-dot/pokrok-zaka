@@ -17,6 +17,8 @@ import ExportPage from './pages/Export'
 import Management from './pages/Management'
 import SelfAssessmentPage from './pages/SelfAssessment'
 import PrintSummary from './pages/PrintSummary'
+import PrintClass from './pages/PrintClass'
+import PrintStudent from './pages/PrintStudent'
 import Landing from './pages/Landing'
 import SelfResults from './pages/SelfResults'
 import Login from './pages/Login'
@@ -72,6 +74,8 @@ export default function App() {
     return (
       <Routes>
         <Route path="/tisk/hodnoceni/:id" element={<PrintAssessment />} />
+        <Route path="/tisk/trida" element={<PrintClass />} />
+        <Route path="/tisk/zak/:id" element={<PrintStudent />} />
         <Route path="/tisk/:id" element={<PrintSummary />} />
       </Routes>
     )

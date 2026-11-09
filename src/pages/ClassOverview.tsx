@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Lightbulb, Search, ThumbsUp, TriangleAlert } from 'lucide-react'
+import { BarChart3, Lightbulb, Printer, Search, ThumbsUp, TriangleAlert } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { criteriaFor } from '../lib/store'
 import { criterionSeries, studentAssessments } from '../lib/analysis'
 import { inRange, periodFor, today } from '../lib/dates'
-import { Card, Empty, Input, LevelBadge, PageHeader, Select, Tabs } from '../components/ui'
+import { Button, Card, Empty, Input, LevelBadge, PageHeader, Select, Tabs } from '../components/ui'
 
 type P = 'tyden' | 'mesic' | 'pololeti' | 'vse'
 
@@ -53,6 +53,7 @@ export default function ClassOverview() {
         icon={<BarChart3 size={28} />}
         title="Přehled třídy"
         subtitle={`${cls?.name} · ${subj.name} · ${per.label}. Buňka ukazuje poslední úroveň v období a změnu od prvního záznamu v něm.`}
+        actions={<a href="#/tisk/trida" target="_blank" rel="noreferrer"><Button><Printer size={16} /> Tisk / PDF třídy</Button></a>}
       />
       {skillStats.length > 0 && (
         <div className="mb-4 grid gap-4 lg:grid-cols-3">

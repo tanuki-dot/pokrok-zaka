@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Database, Download, FileSpreadsheet, FileText, Upload } from 'lucide-react'
+import { Database, Download, FileSpreadsheet, FileText, Printer, Upload } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { replaceDB } from '../lib/store'
 import { remoteEnabled } from '../lib/remote'
@@ -33,8 +33,11 @@ export default function ExportPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Button variant="primary" onClick={() => exportXlsx(db, sid, `${base}.xlsx`)}><FileSpreadsheet size={16} /> Excel (.xlsx)</Button>
             <Button onClick={() => exportCsv(db, sid, `${base}.csv`)}><FileText size={16} /> CSV</Button>
+            {cls && subj && (
+              <a href="#/tisk/trida" target="_blank" rel="noreferrer"><Button><Printer size={16} /> Tisk / PDF celé třídy</Button></a>
+            )}
           </div>
-          <p className="mt-3 text-xs text-ink-faint">Excel obsahuje listy Hodnocení, Cíle a Schválené souhrny. CSV obsahuje jen hodnocení (oddělovač středník, kódování UTF-8).</p>
+          <p className="mt-3 text-xs text-ink-faint">Excel obsahuje listy Hodnocení, Cíle a Schválené souhrny. CSV obsahuje jen hodnocení (oddělovač středník, kódování UTF-8). „Tisk / PDF celé třídy“ sestaví formativní hodnocení všech žáků třídy {cls?.name} v předmětu {subj?.name} do jednoho dokumentu.</p>
         </Card>
 
         <Card title="Záloha celé aplikace">
