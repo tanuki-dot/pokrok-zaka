@@ -201,7 +201,7 @@ function SelfLink({ a }: { a: Assessment }) {
             <Button variant="ghost" onClick={() => void refresh()}><RefreshCw size={14} /> Načíst odpovědi žáka</Button>
           </div>
         ) : (
-          <p className="text-xs text-ink-faint">V demonstrační aplikaci se odpovědi ukládají v tomto prohlížeči – otevřete odkaz v nové kartě.</p>
+          <p className="text-xs text-ink-faint">V testovacím provozu se odpovědi ukládají v tomto prohlížeči – otevřete odkaz v nové kartě.</p>
         )}
       </div>
     </div>

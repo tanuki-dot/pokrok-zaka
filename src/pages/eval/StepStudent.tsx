@@ -167,7 +167,7 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
             </>
           )}
         </div>
-        {!studentId && <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">Demonstrační aplikace: zadávejte pouze fiktivní údaje.</p>}
+        {!studentId && <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">Testovací provoz: zadávejte pouze fiktivní údaje.</p>}
       </Card>
 
       <Card title="Hodnocené období *">

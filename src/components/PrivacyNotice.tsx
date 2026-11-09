@@ -25,7 +25,7 @@ export function PrivacyNotice() {
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
             Aplikace nepoužívá cookies ani reklamní či analytické služby.{' '}
             {remoteEnabled
-              ? 'Data učitelů, tříd a hodnocení ukládá do databáze Supabase (servery v EU), přihlášení drží v úložišti prohlížeče. Zatím jde o zkušební provoz jen s fiktivními žáky.'
+              ? 'Data učitelů, tříd a hodnocení ukládá do databáze Supabase (servery v EU), přihlášení drží v úložišti prohlížeče. Zatím jde o testovací provoz jen s fiktivními žáky.'
               : 'Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.'}{aiAvailable && ' Návrhy pomocí AI vytváří server školy přes službu Anthropic – odesílají se jen údaje hodnocení bez jména a třídy žáka.'}
           </p>
         </div>

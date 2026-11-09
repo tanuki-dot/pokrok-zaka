@@ -173,7 +173,7 @@ export default function Landing() {
           </div>
           <p className="mt-4 text-sm text-ink-faint">
             {remoteEnabled
-              ? 'Zkušební provoz: po přihlášení si nahrajete ukázkové třídy s fiktivními žáky ZŠ i SŠ.'
+              ? 'Testovací provoz: po přihlášení si nahrajete ukázkové třídy s fiktivními žáky ZŠ i SŠ.'
               : 'Bez přihlášení a instalace. Demo obsahuje fiktivní žáky ZŠ i SŠ.'}
           </p>
         </div>

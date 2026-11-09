@@ -214,7 +214,7 @@ export default function StepTeacher({ a, setDirty, goTo }: StepProps) {
         <div className="mt-3">
           <AttachmentList items={db.attachments.filter((x) => x.assessmentId === asm.id && x.owner === 'ucitel')} canDelete />
         </div>
-        <p className="mt-2 text-xs text-ink-faint">V demonstrační aplikaci se soubory ukládají jen v tomto prohlížeči.</p>
+        <p className="mt-2 text-xs text-ink-faint">V testovacím provozu se soubory ukládají jen v tomto prohlížeči.</p>
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">

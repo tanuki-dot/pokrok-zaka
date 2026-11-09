@@ -70,7 +70,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <ServerBox />
         ) : (
           <div className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
-            <strong className="block text-[13px]">Demonstrační aplikace</strong>
+            <strong className="block text-[13px]">Testovací provoz</strong>
             Fiktivní žáci a třídy. Data se ukládají jen v tomto prohlížeči.
           </div>
         )}
@@ -215,7 +215,7 @@ function ServerBox() {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
       <div>
-        <strong className="block text-[13px]">Zkušební provoz</strong>
+        <strong className="block text-[13px]">Testovací provoz</strong>
         Jen fiktivní žáci – skutečné údaje zatím nezadávejte.
       </div>
       <div className="truncate font-semibold" title={email}>{email}</div>

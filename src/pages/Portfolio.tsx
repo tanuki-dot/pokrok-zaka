@@ -61,7 +61,7 @@ export default function Portfolio() {
             })}
           </ul>
         )}
-        <p className="mt-4 text-xs text-ink-faint">V demonstrační aplikaci jsou soubory uložené jen v tomto prohlížeči. Pro ostrý provoz patří do zabezpečeného úložiště školy.</p>
+        <p className="mt-4 text-xs text-ink-faint">V testovacím provozu jsou soubory uložené jen v tomto prohlížeči. Pro ostrý provoz patří do zabezpečeného úložiště školy.</p>
       </Card>
     </>
   )

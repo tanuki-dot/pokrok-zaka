@@ -61,7 +61,7 @@ export default function Dashboard() {
         icon={<LayoutDashboard size={28} />}
         title="POKROK ŽÁKA"
         subtitle="Formativní hodnocení a sledování individuálního pokroku"
-        actions={<Pill tone="warn" className="px-3 py-1 text-sm">Demonstrační aplikace</Pill>}
+        actions={<Pill tone="warn" className="px-3 py-1 text-sm">Testovací provoz</Pill>}
       />
 
       <div className="mb-5 flex flex-wrap gap-2">
