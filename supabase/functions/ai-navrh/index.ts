@@ -4,18 +4,19 @@
 //   task = "hodnoceni" → slovní formativní hodnocení (délka kratke | stredni | dlouhe)
 //   task = "rozvoj"    → individuální rozvoj žáka (4 pole)
 //
+// AI: Google Gemini (free tier), výchozí model gemini-3.1-flash-lite.
 // Nasazení:
-//   supabase secrets set ANTHROPIC_API_KEY=...
-//   supabase functions deploy ai-navrh
+//   supabase secrets set GEMINI_API_KEY=...        (klíč z Google AI Studio)
+//   supabase secrets set GEMINI_MODEL=...          (nepovinné, přepíše výchozí model)
+//   supabase functions deploy ai-navrh --use-api
 // Funkci smí volat jen přihlášený učitel (ověří se jeho přihlášení), počet požadavků je
 // omezený na den. Klíč k API zůstává jen na serveru. Aplikace posílá pseudonymizovaný
 // kontext bez jména a třídy žáka (src/lib/ai.ts).
 
-import Anthropic from 'npm:@anthropic-ai/sdk@1.1.0'
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0'
 
-const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
-const MODEL = 'claude-opus-5-5'
+const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite'
 const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT') ?? '60')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const admin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
@@ -26,7 +27,6 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Stabilní systémový prompt (bez proměnných údajů), aby šel cachovat.
 const SYSTEM = `Jsi zkušený pedagog a pomáháš učitelům české základní a střední školy s formativním hodnocením žáků.
 Dostaneš pseudonymizovaný kontext jednoho hodnocení ve formátu JSON (údaje o předmětu, ročníku, období, tematických celcích, vzdělávacích cílech, hodnocení dovedností učitelem, dotazník učitele, sebehodnocení žáka, předchozí hodnocení a druhy doložených prací).
 
@@ -36,7 +36,8 @@ Pravidla:
 - Důsledně odlišuj hodnocení učitele od vlastního pohledu žáka (sebehodnocení). Sebehodnocení je subjektivní pohled žáka, ne objektivní hodnocení. Případné rozdíly formuluj citlivě a věcně.
 - Cíl se splněním „neoznačeno“ nikdy nepopisuj jako splněný ani nesplněný.
 - Piš česky, srozumitelně pro žáka i rodiče, pozitivně a pedagogicky vhodně. Žáka neoslovuj jménem, piš genderově neutrálně (např. „zvládá“, „potřebuje“, „žák“).
-- Hodnocení slouží ke zpětné vazbě a podpoře rozvoje, není to známka.`
+- Hodnocení slouží ke zpětné vazbě a podpoře rozvoje, není to známka.
+- Odpověz výhradně platným JSON podle zadaného schématu, bez jakéhokoli dalšího textu.`
 
 const TASK_PROMPT: Record<string, (length?: string) => string> = {
   cile: () =>
@@ -52,24 +53,22 @@ const TASK_PROMPT: Record<string, (length?: string) => string> = {
     'Vyplň individuální rozvoj žáka ve čtyřech polích: s = co žák zvládá (zvládnuté znalosti a dovednosti, úspěchy, samostatně zvládané činnosti, zaznamenaný pokrok); w = co potřebuje zlepšit (co vyžaduje procvičení, kde potřebuje podporu, konkrétní možnosti zlepšení); o = možnosti dalšího rozvoje (doporučené aktivity, prohlubování znalostí, nové dovednosti, další kroky); t = překážky v učení (jen doložené obtíže z údajů, potřebná podpora a jak je překonat). Pokud překážky nejsou v údajích doloženy, vrať v poli t přesně větu „Nebyly zaznamenány konkrétní překážky v učení.“',
 }
 
+// Schéma odpovědi pro Gemini (responseSchema – typy velkými písmeny).
 const SCHEMA: Record<string, Record<string, unknown>> = {
   cile: {
-    type: 'object',
-    properties: { goals: { type: 'array', items: { type: 'string' } } },
+    type: 'OBJECT',
+    properties: { goals: { type: 'ARRAY', items: { type: 'STRING' } } },
     required: ['goals'],
-    additionalProperties: false,
   },
   hodnoceni: {
-    type: 'object',
-    properties: { text: { type: 'string' }, missing: { type: 'array', items: { type: 'string' } } },
+    type: 'OBJECT',
+    properties: { text: { type: 'STRING' }, missing: { type: 'ARRAY', items: { type: 'STRING' } } },
     required: ['text', 'missing'],
-    additionalProperties: false,
   },
   rozvoj: {
-    type: 'object',
-    properties: { s: { type: 'string' }, w: { type: 'string' }, o: { type: 'string' }, t: { type: 'string' } },
+    type: 'OBJECT',
+    properties: { s: { type: 'STRING' }, w: { type: 'STRING' }, o: { type: 'STRING' }, t: { type: 'STRING' } },
     required: ['s', 'w', 'o', 't'],
-    additionalProperties: false,
   },
 }
 
@@ -79,6 +78,7 @@ const json = (body: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Použijte POST.' }, 405)
+  if (!API_KEY) return json({ error: 'AI není nakonfigurovaná (chybí GEMINI_API_KEY).' }, 503)
 
   // Jen přihlášený učitel (anon key nestačí).
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '')
@@ -104,22 +104,39 @@ Deno.serve(async (req) => {
   if (context.length > 60_000) return json({ error: 'Kontext je příliš velký.' }, 413)
 
   try {
-    const response = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA[task] } },
-      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: `${TASK_PROMPT[task](body.length)}\n\nKontext hodnocení:\n${context}` }],
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: 'user', parts: [{ text: `${TASK_PROMPT[task](body.length)}\n\nKontext hodnocení:\n${context}` }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: SCHEMA[task],
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+        },
+      }),
     })
-    if (response.stop_reason === 'refusal') return json({ error: 'AI požadavek odmítla.' }, 422)
-    if (response.stop_reason === 'max_tokens') return json({ error: 'Odpověď AI byla příliš dlouhá.' }, 502)
-    const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('')
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      if (res.status === 429) return json({ error: 'AI je přetížená nebo je vyčerpaný denní limit Google, zkuste to za chvíli.' }, 429)
+      if (res.status === 400 && /API key|API_KEY_INVALID/i.test(detail)) return json({ error: 'Chybný klíč k AI (GEMINI_API_KEY).' }, 502)
+      if (res.status === 404) return json({ error: `Model „${MODEL}“ není dostupný.` }, 502)
+      return json({ error: `Chyba AI (${res.status}).` }, 502)
+    }
+
+    const data = await res.json()
+    const cand = data.candidates?.[0]
+    if (data.promptFeedback?.blockReason || cand?.finishReason === 'SAFETY' || cand?.finishReason === 'PROHIBITED_CONTENT') {
+      return json({ error: 'AI požadavek odmítla.' }, 422)
+    }
+    if (cand?.finishReason === 'MAX_TOKENS') return json({ error: 'Odpověď AI byla příliš dlouhá.' }, 502)
+    const text: string = (cand?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? '').join('')
+    if (!text.trim()) return json({ error: 'AI vrátila prázdnou odpověď.' }, 502)
     return json(JSON.parse(text))
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json({ error: 'AI je přetížená, zkuste to za chvíli.' }, 429)
-    if (e instanceof Anthropic.APIError) return json({ error: `Chyba AI (${e.status}).` }, 502)
     if (e instanceof SyntaxError) return json({ error: 'AI vrátila neplatnou odpověď.' }, 502)
     return json({ error: 'Neočekávaná chyba.' }, 500)
   }

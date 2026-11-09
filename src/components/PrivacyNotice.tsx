@@ -29,14 +29,14 @@ export function PrivacyNotice() {
               : 'Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.'}
             {aiAvailable && (
               <>
-                {' '}Návrhy pomocí AI zpracovává jako zpracovatel společnost Anthropic (Claude, servery mimo EU, v USA). Posílají se jen pseudonymizované údaje hodnocení bez jména, příjmení a třídy žáka; podle podmínek Anthropic se údaje z API nepoužívají k trénování modelů. V testovacím provozu jde navíc jen o fiktivní data.{' '}
+                {' '}Návrhy pomocí AI zpracovává jako zpracovatel společnost Google (model Gemini, servery mimo EU, v USA). Posílají se jen pseudonymizované údaje hodnocení bez jména, příjmení a třídy žáka. Pro uživatele z EU platí i na bezplatné úrovni přísnější podmínky, data se nepoužívají k trénování modelů ani k lidské revizi. V testovacím provozu jde navíc jen o fiktivní data.{' '}
                 <a
-                  href="https://www.anthropic.com/legal/privacy"
+                  href="https://ai.google.dev/gemini-api/terms"
                   target="_blank"
                   rel="noreferrer"
                   className="font-semibold text-sea-600 underline underline-offset-2 hover:text-sea-700"
                 >
-                  Zásady ochrany soukromí Anthropic
+                  Podmínky Gemini API
                 </a>.
               </>
             )}

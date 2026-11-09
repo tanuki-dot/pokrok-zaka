@@ -34,7 +34,7 @@ Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a P
 
 ### AI
 
-Návrh cílů, slovní formativní hodnocení a individuální rozvoj umí vytvořit AI (Claude, model `claude-opus-5-5`) přes serverovou funkci `supabase/functions/ai-navrh`. API klíč je jen na serveru, funkci smí volat jen přihlášený učitel (denní limit `AI_DAILY_LIMIT`, výchozí 60 návrhů) a aplikace posílá údaje bez jména a třídy žáka. Bez serveru se použijí šablony (`src/lib/analysis.ts`) se stejnými pravidly: vychází jen z uložených údajů, odlišuje hodnocení učitele od pohledu žáka, chybějící údaje nevydává za splněné ani nesplněné a upozorní na ně.
+Návrh cílů, slovní formativní hodnocení a individuální rozvoj umí vytvořit AI (Google Gemini, výchozí model `gemini-3.1-flash-lite` z bezplatné úrovně) přes serverovou funkci `supabase/functions/ai-navrh`. API klíč je jen na serveru, funkci smí volat jen přihlášený učitel (denní limit `AI_DAILY_LIMIT`, výchozí 60 návrhů) a aplikace posílá údaje bez jména a třídy žáka. Bez serveru se použijí šablony (`src/lib/analysis.ts`) se stejnými pravidly: vychází jen z uložených údajů, odlišuje hodnocení učitele od pohledu žáka, chybějící údaje nevydává za splněné ani nesplněné a upozorní na ně.
 
 ## Server (Supabase + GitHub Pages)
 
@@ -47,7 +47,7 @@ supabase login
 supabase link --project-ref <ref>          # projekt v EU (Frankfurt)
 supabase db push                           # schéma, RLS, katalog dovedností a celků ŠVP
 supabase config push                       # přihlášení: adresa webu, potvrzení e-mailu, délka hesla
-supabase secrets set ANTHROPIC_API_KEY=... # klíč zadejte sami, nikam jinam ho nedávejte
+supabase secrets set GEMINI_API_KEY=...    # klíč z Google AI Studio, zadejte sami, nikam jinam ho nedávejte
 supabase functions deploy ai-navrh
 supabase functions deploy zak-priloha --no-verify-jwt
 ```
@@ -82,7 +82,7 @@ supabase/functions    ai-navrh (AI), zak-priloha (nahrání práce žáka přes 
 ## Na ostrý provoz se skutečnými žáky (zatím není hotové)
 
 Dokud nejsou splněné tyto podmínky, zadávejte jen fiktivní údaje:
-- Ochrana osobních údajů podle GDPR: záznam o zpracování, posouzení vlivu, smlouvy se zpracovateli (Supabase, při zapnutí AI i Anthropic), informace pro rodiče.
+- Ochrana osobních údajů podle GDPR: záznam o zpracování, posouzení vlivu, smlouvy se zpracovateli (Supabase, při zapnutí AI i Google), informace pro rodiče.
 - Správa účtů školou (pozvánky místo volné registrace), zálohy databáze, kontrola RLS politik.
 
 ## Soukromí
