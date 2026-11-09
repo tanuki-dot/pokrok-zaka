@@ -21,6 +21,7 @@ import Landing from './pages/Landing'
 import SelfResults from './pages/SelfResults'
 import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
+import Settings from './pages/Settings'
 import { Forbidden, NotFound } from './pages/ErrorPage'
 import { remoteEnabled } from './lib/remote'
 import { useSession } from './lib/session'
@@ -80,6 +81,7 @@ export default function App() {
       <Layout>
         <Routes>
           <Route path="/vedeni" element={<Management />} />
+          <Route path="/nastaveni" element={<Settings />} />
           <Route path="*" element={<Navigate to="/vedeni" replace />} />
         </Routes>
       </Layout>
@@ -113,6 +115,7 @@ export default function App() {
         <Route path="/tridy" element={<Classes />} />
         <Route path="/kriteria" element={<CriteriaPage />} />
         <Route path="/export" element={<ExportPage />} />
+        <Route path="/nastaveni" element={<Settings />} />
         <Route path="/vedeni" element={<Forbidden />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

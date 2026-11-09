@@ -1,19 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import {
-  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, RotateCcw,
+  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, Settings2,
   MessageSquareHeart, School, SlidersHorizontal, Users, X, LogOut, RefreshCw, CloudOff, Check, Loader2,
 } from 'lucide-react'
-import { resetDemo, retrySync, setRole } from '../lib/store'
+import { retrySync } from '../lib/store'
 import { onSyncState, remoteEnabled, type SyncState } from '../lib/remote'
 import { refresh, signOut, useSession } from '../lib/session'
 import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
-import { ThemeToggle } from './ThemeToggle'
 import { ConfirmDialog } from './ConfirmDialog'
-import { LOGOUT_OPTIONS, setIdleMinutes, useAutoLogout, useIdleMinutes } from '../lib/autologout'
-import { openPrivacy } from '../lib/privacy'
+import { useAutoLogout } from '../lib/autologout'
 
 const TEACHER_NAV = [
   { to: '/prehled', label: 'Přehled', icon: LayoutDashboard },
@@ -27,17 +25,18 @@ const TEACHER_NAV = [
   { to: '/tridy', label: 'Třídy a žáci', icon: Users },
   { to: '/kriteria', label: 'Dovednosti a věty', icon: SlidersHorizontal },
   { to: '/export', label: 'Export dat', icon: Download },
+  { to: '/nastaveni', label: 'Nastavení', icon: Settings2 },
 ]
-const MGMT_NAV = [{ to: '/vedeni', label: 'Vedení školy', icon: School }]
+const MGMT_NAV = [
+  { to: '/vedeni', label: 'Vedení školy', icon: School },
+  { to: '/nastaveni', label: 'Nastavení', icon: Settings2 },
+]
 
 export function Layout({ children }: { children: ReactNode }) {
   const { db, type, classes, cls, subjects, subj } = useCtx()
   const [open, setOpen] = useState(false)
-  const nav = useNavigate()
   const role = db.settings.role
   const items = role === 'ucitel' ? TEACHER_NAV : MGMT_NAV
-  const [confirmReset, setConfirmReset] = useState(false)
-  const idleMin = useIdleMinutes()
   // V serverovém režimu odhlásí učitele i vedení po nastavené době nečinnosti.
   useAutoLogout(remoteEnabled, signOut)
 
@@ -79,53 +78,6 @@ export function Layout({ children }: { children: ReactNode }) {
             Fiktivní žáci a třídy. Data se ukládají jen v tomto prohlížeči.
           </div>
         )}
-        <div className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
-          Vzhled
-          <ThemeToggle />
-        </div>
-        {remoteEnabled && (
-          <label className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
-            Automatické odhlášení
-            <Select id="auto-odhlaseni" value={idleMin} onChange={(e) => setIdleMinutes(Number(e.target.value))}>
-              {LOGOUT_OPTIONS.map((m) => (
-                <option key={m} value={m}>po {m} min nečinnosti</option>
-              ))}
-            </Select>
-          </label>
-        )}
-{!remoteEnabled && (
-          <>
-        <label className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
-          Přihlášen jako
-          <Select
-            id="role"
-            value={role}
-            onChange={(e) => {
-              const r = e.target.value as 'ucitel' | 'vedeni'
-              setRole(r)
-              nav(r === 'ucitel' ? '/prehled' : '/vedeni')
-            }}
-          >
-            <option value="ucitel">Učitel/ka</option>
-            <option value="vedeni">Vedení školy</option>
-          </Select>
-        </label>
-        {confirmReset ? (
-          <div className="flex items-center gap-2 px-1 text-xs">
-            <span className="text-ink-soft">Obnovit demo data?</span>
-            <button className="font-semibold text-bad" onClick={() => { resetDemo(); setConfirmReset(false); nav('/prehled') }}>Ano</button>
-            <button className="font-semibold text-ink-soft" onClick={() => setConfirmReset(false)}>Ne</button>
-          </div>
-        ) : (
-          <button className="flex items-center gap-2 px-1 text-xs font-semibold text-ink-faint hover:text-ink" onClick={() => setConfirmReset(true)}>
-            <RotateCcw size={14} /> Obnovit ukázková data
-          </button>
-        )}
-          </>
-        )}
-        <button className="px-1 text-left text-xs font-semibold text-ink-faint hover:text-ink" onClick={openPrivacy}>
-          Soukromí
-        </button>
       </div>
     </nav>
   )
