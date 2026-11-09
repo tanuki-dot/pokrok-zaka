@@ -22,6 +22,7 @@ import SelfResults from './pages/SelfResults'
 import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Settings from './pages/Settings'
+import BulkAssessment from './pages/BulkAssessment'
 import { Forbidden, NotFound } from './pages/ErrorPage'
 import { remoteEnabled } from './lib/remote'
 import { useSession } from './lib/session'
@@ -101,6 +102,7 @@ export default function App() {
       <Routes>
         <Route path="/prehled" element={<Dashboard />} />
         <Route path="/hodnoceni/nove" element={<WizardKeyed />} />
+        <Route path="/hodnoceni/hromadne" element={<BulkAssessment />} />
         <Route path="/hodnoceni/:id" element={<WizardKeyed />} />
         <Route path="/hodnoceni/:id/:step" element={<WizardKeyed />} />
         <Route path="/historie" element={<History />} />

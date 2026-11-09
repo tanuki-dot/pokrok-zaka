@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
-  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, Settings2,
+  BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, Layers, LayoutDashboard, Menu, Settings2,
   MessageSquareHeart, School, SlidersHorizontal, Users, X, LogOut, RefreshCw, CloudOff, Check, Loader2,
 } from 'lucide-react'
 import { retrySync } from '../lib/store'
@@ -16,6 +16,7 @@ import { useAutoLogout } from '../lib/autologout'
 const TEACHER_NAV = [
   { to: '/prehled', label: 'Přehled', icon: LayoutDashboard },
   { to: '/hodnoceni/nove', label: 'Nové hodnocení', icon: ClipboardPen },
+  { to: '/hodnoceni/hromadne', label: 'Hromadné hodnocení', icon: Layers },
   { to: '/historie', label: 'Historie hodnocení', icon: History },
   { to: '/zaci', label: 'Žáci a pokrok', icon: GraduationCap },
   { to: '/sebehodnoceni-zaku', label: 'Sebehodnocení', icon: MessageSquareHeart },

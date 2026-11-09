@@ -314,6 +314,27 @@ export function saveAssessment(draft: AssessmentDraft): Assessment {
   return a
 }
 
+/** Hromadné hodnocení (KROK 3): vytvoří hodnocení pro více žáků najednou (jeden zápis). */
+export function saveBulkAssessments(drafts: AssessmentDraft[]): number {
+  if (!drafts.length) return 0
+  const created: Assessment[] = drafts.map((draft) => ({
+    ...draft,
+    feedback: feedbackOf(draft.teacherQ),
+    nextGoal: draft.nextGoal ?? '',
+    status: draft.status ?? 'rozpracovane',
+    id: draft.id ?? uid('h'),
+    selfCode: null,
+    createdAt: now(),
+    updatedAt: now(),
+  } as Assessment))
+  commit({
+    ...db,
+    assessments: [...db.assessments, ...created],
+    audit: audit(db, 'vytvořeno', 'hromadné hodnocení', `${created.length} žáků`),
+  })
+  return created.length
+}
+
 /** Uloží formativní zprávu; schválením se hodnocení označí jako dokončené. */
 export function saveReport(assessmentId: string, report: Report, swot: Assessment['swot'], approve: boolean) {
   const a = db.assessments.find((x) => x.id === assessmentId)
