@@ -21,6 +21,7 @@ export function remapIds(d: DB): DB {
   })
   d.selfAssessments.forEach((x) => add(x.id))
   d.attachments.forEach((x) => add(x.id))
+  d.documents.forEach((x) => add(x.id))
   d.goals.forEach((x) => add(x.id))
   d.summaries.forEach((s) => {
     add(s.id)

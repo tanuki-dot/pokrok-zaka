@@ -116,7 +116,7 @@ type AnyDB = Record<string, unknown> & { version?: number }
 
 export function migrate(raw: AnyDB): DB | null {
   if (!raw || !Array.isArray(raw.assessments)) return null
-  if (raw.version === 3) return raw as unknown as DB
+  if (raw.version === 3) return { ...raw, documents: raw.documents ?? [] } as unknown as DB
   if (raw.version !== 1 && raw.version !== 2) return null
   const scale = raw.version === 1 ? 'v1' : 'v2'
   const old = raw as unknown as Omit<DB, 'version' | 'units' | 'attachments' | 'assessments'> & {
@@ -155,6 +155,7 @@ export function migrate(raw: AnyDB): DB | null {
     units: structuredClone(DEMO_UNITS),
     assessments,
     attachments: [],
+    documents: [],
     summaries,
     settings,
     audit: [note, ...old.audit].slice(0, 400),

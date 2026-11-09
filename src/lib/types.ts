@@ -207,6 +207,21 @@ export interface Attachment {
   addedAt: string
 }
 
+/** Druh podpůrného dokumentu žáka (podpůrná opatření). */
+export type DocKind = 'plpp' | 'ivp' | 'ppp' | 'spc' | 'jine'
+
+/** Podpůrný dokument žáka (PLPP, IVP, doporučení PPP/SPC …). Obsah souboru je v úložišti,
+ *  tady jen popis. Vázaný na žáka, ne na konkrétní hodnocení. */
+export interface Document {
+  id: string
+  studentId: string
+  kind: DocKind
+  name: string
+  mime: string
+  size: number
+  addedAt: string
+}
+
 export interface Goal {
   id: string
   studentId: string
@@ -274,6 +289,7 @@ export interface DB {
   assessments: Assessment[]
   selfAssessments: SelfAssessment[]
   attachments: Attachment[]
+  documents: Document[]
   goals: Goal[]
   summaries: Summary[]
   phrases: Phrase[]

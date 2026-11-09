@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import type {
-  Assessment, Attachment, AuditEntry, Criterion, DB, Feedback, Goal, Phrase, Report, SchoolClass, SelfAnswers, SelfAssessment, SelfFormDef,
+  Assessment, Attachment, AuditEntry, Criterion, DB, DocKind, Document, Feedback, Goal, Phrase, Report, SchoolClass, SelfAnswers, SelfAssessment, SelfFormDef,
   SelfWording, Student, Subject, Summary, TeacherAnswer, TeacherQKey, TopicUnit,
 } from './types'
-import { deleteFile, putFile } from './files'
+import { deleteDoc, deleteFile, putDoc, putFile } from './files'
 import { createDemoDB } from './seed'
 import { uid } from './util'
 import { migrate } from './migrate'
@@ -21,7 +21,7 @@ const KEY = 'pokrok-zaka:v1'
 
 export const emptyDB = (): DB => ({
   version: 3, schools: [], classes: [], students: [], subjects: [], criteria: [], units: [], assessments: [], selfAssessments: [],
-  attachments: [], goals: [], summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' },
+  attachments: [], documents: [], goals: [], summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' },
 })
 
 let db: DB = remoteEnabled ? emptyDB() : load()
@@ -216,6 +216,7 @@ export function removeStudent(id: string) {
     assessments: db.assessments.filter((a) => a.studentId !== id),
     selfAssessments: db.selfAssessments.filter((s) => !aIds.has(s.assessmentId)),
     attachments: db.attachments.filter((x) => !aIds.has(x.assessmentId)),
+    documents: db.documents.filter((d) => d.studentId !== id),
     goals: db.goals.filter((g) => g.studentId !== id),
     summaries: db.summaries.filter((s) => s.studentId !== id),
     audit: audit(db, 'smazáno', 'žák', name),
@@ -349,6 +350,21 @@ export async function removeAttachment(id: string) {
     assessments: db.assessments.map((a) => (a.report?.attachments.includes(id) ? { ...a, report: { ...a.report, attachments: a.report.attachments.filter((x) => x !== id) } } : a)),
     audit: audit(db, 'smazáno', 'příloha', att?.name ?? ''),
   })
+}
+
+// ─── Podpůrné dokumenty žáka (PLPP, IVP, PPP, SPC …) ─────────────────────────
+
+export async function addDocument(studentId: string, kind: DocKind, file: File): Promise<Document> {
+  const doc: Document = { id: uid('doc'), studentId, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
+  await putDoc(doc, file)
+  commit({ ...db, documents: [...db.documents, doc], audit: audit(db, 'vytvořeno', 'dokument žáka', `${studentName(db, studentId)} · ${doc.name}`) })
+  return doc
+}
+
+export async function removeDocument(id: string) {
+  const doc = db.documents.find((x) => x.id === id)
+  if (doc) await deleteDoc(doc).catch(() => {})
+  commit({ ...db, documents: db.documents.filter((x) => x.id !== id), audit: audit(db, 'smazáno', 'dokument žáka', doc?.name ?? '') })
 }
 
 function addDaysISO(iso: string, n: number) {

@@ -5,8 +5,11 @@
  * v demu jen v tomto prohlížeči.
  */
 
-import type { Attachment } from './types'
-import { downloadFile as remoteDownload, remoteEnabled, removeFile as remoteRemove, uploadFile as remoteUpload } from './remote'
+import type { Attachment, Document } from './types'
+import {
+  downloadDoc as remoteDownloadDoc, downloadFile as remoteDownload, remoteEnabled, removeDoc as remoteRemoveDoc,
+  removeFile as remoteRemove, uploadDoc as remoteUploadDoc, uploadFile as remoteUpload,
+} from './remote'
 
 const DB_NAME = 'pokrok-zaka-prilohy'
 const STORE = 'soubory'
@@ -42,6 +45,34 @@ export const putFile = async (att: Ref, blob: Blob) =>
 export const getFile = (att: Ref): Promise<Blob | undefined> =>
   remoteEnabled ? remoteDownload(att.assessmentId, att.id) : tx<Blob | undefined>('readonly', (s) => s.get(att.id) as IDBRequest<Blob | undefined>)
 export const deleteFile = async (att: Ref) => (remoteEnabled ? remoteRemove(att.assessmentId, att.id) : void (await tx('readwrite', (s) => s.delete(att.id))))
+
+// ─── Podpůrné dokumenty žáka (stejné úložiště, klíč = id, cesta = <student_id>/<id>) ──
+type DocRef = Pick<Document, 'id' | 'studentId'>
+
+export const putDoc = async (doc: DocRef, blob: Blob) =>
+  remoteEnabled ? remoteUploadDoc(doc.studentId, doc.id, blob) : void (await tx('readwrite', (s) => s.put(blob, doc.id)))
+export const getDoc = (doc: DocRef): Promise<Blob | undefined> =>
+  remoteEnabled ? remoteDownloadDoc(doc.studentId, doc.id) : tx<Blob | undefined>('readonly', (s) => s.get(doc.id) as IDBRequest<Blob | undefined>)
+export const deleteDoc = async (doc: DocRef) => (remoteEnabled ? remoteRemoveDoc(doc.studentId, doc.id) : void (await tx('readwrite', (s) => s.delete(doc.id))))
+
+export async function openDoc(doc: DocRef) {
+  const blob = await getDoc(doc)
+  if (!blob) throw new Error(remoteEnabled ? 'Dokument se nepodařilo načíst ze serveru.' : 'Dokument v tomto prohlížeči není.')
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+export async function downloadDocFile(doc: DocRef, name: string) {
+  const blob = await getDoc(doc)
+  if (!blob) throw new Error(remoteEnabled ? 'Dokument se nepodařilo načíst ze serveru.' : 'Dokument v tomto prohlížeči není.')
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 
 /** Otevře přílohu v nové kartě. */
 export async function openFile(att: Ref) {

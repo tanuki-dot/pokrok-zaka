@@ -26,7 +26,7 @@ export async function accessToken(): Promise<string | null> {
 
 // ─── Mapování app ↔ databáze ─────────────────────────────────────────────────
 
-type Key = 'schools' | 'classes' | 'students' | 'subjects' | 'criteria' | 'units' | 'assessments' | 'selfAssessments' | 'attachments' | 'goals' | 'summaries' | 'phrases' | 'audit'
+type Key = 'schools' | 'classes' | 'students' | 'subjects' | 'criteria' | 'units' | 'assessments' | 'selfAssessments' | 'attachments' | 'documents' | 'goals' | 'summaries' | 'phrases' | 'audit'
 type Row = Record<string, unknown>
 type Item = { id: string } & Record<string, unknown>
 
@@ -55,6 +55,7 @@ export const TABLES: Record<Key, TableSpec> = {
   },
   selfAssessments: { table: 'self_assessments', fields: f('id', 'assessmentId', 'answers', 'form', 'submittedAt', 'corrections') },
   attachments: { table: 'attachments', fields: f('id', 'assessmentId', 'owner', 'name', 'type', 'size', 'addedAt') },
+  documents: { table: 'documents', fields: f('id', 'studentId', 'kind', 'name', 'mime', 'size', 'addedAt') },
   goals: { table: 'goals', fields: f('id', 'studentId', 'subjectId', 'assessmentId', 'text', 'setOn', 'due', 'status') },
   summaries: {
     table: 'summaries',
@@ -215,6 +216,23 @@ export async function downloadFile(assessmentId: string, id: string): Promise<Bl
 }
 export async function removeFile(assessmentId: string, id: string) {
   await sb!.storage.from(BUCKET).remove([storagePath(assessmentId, id)])
+}
+
+// Podpůrné dokumenty žáka – bucket „dokumenty“, cesta <student_id>/<document_id>.
+const BUCKET_DOCS = 'dokumenty'
+export const docPath = (studentId: string, id: string) => `${studentId}/${id}`
+export async function uploadDoc(studentId: string, id: string, blob: Blob) {
+  await flush()
+  const { error } = await sb!.storage.from(BUCKET_DOCS).upload(docPath(studentId, id), blob, { contentType: blob.type || 'application/octet-stream', upsert: true })
+  if (error) throw new Error('Dokument se nepodařilo nahrát na server.')
+}
+export async function downloadDoc(studentId: string, id: string): Promise<Blob | undefined> {
+  const { data, error } = await sb!.storage.from(BUCKET_DOCS).download(docPath(studentId, id))
+  if (error) return undefined
+  return data
+}
+export async function removeDoc(studentId: string, id: string) {
+  await sb!.storage.from(BUCKET_DOCS).remove([docPath(studentId, id)])
 }
 
 // ─── Sebehodnocení žáka (bez přihlášení, jen přes kód) ───────────────────────

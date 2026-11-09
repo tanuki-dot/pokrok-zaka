@@ -336,6 +336,7 @@ export function createDemoDB(): DB {
     assessments,
     selfAssessments,
     attachments: [],
+    documents: [],
     goals,
     summaries: [],
     phrases,
@@ -386,7 +387,7 @@ export function createDemoDB(): DB {
       answers: { understanding: 2, work: 3, wentWell: ['m-p2', 'm-p4'], improve: ['m-z1'], goalMet: 'castecne', nextWish: 'Zvládnout všechny funkce bez pomoci.' },
       submittedAt: `${lm.to}T13:00:00.000Z`,
     }
-    const tmp = { ...structuredClone({ schools, classes, students, subjects, criteria, units: DEMO_UNITS, assessments, selfAssessments, attachments: [], goals, summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' } }), version: 3 } as DB
+    const tmp = { ...structuredClone({ schools, classes, students, subjects, criteria, units: DEMO_UNITS, assessments, selfAssessments, attachments: [], documents: [], goals, summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' } }), version: 3 } as DB
     const rep = reportText(tmp, a, self, 'stredni')
     a.swot = proposeDevelopment(tmp, a, self)
     a.report = { length: 'stredni', text: rep.text, original: rep.text, source: 'sablona', approved: true, approvedAt: `${lm.to}T14:30:00.000Z`, missing: rep.missing, attachments: [] }
