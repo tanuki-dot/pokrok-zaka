@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { School } from 'lucide-react'
 import { useDB } from '../lib/store'
+import { managementStats, remoteEnabled } from '../lib/remote'
 import { addDays, fmtShort, inRange, periodFor, today, weekStart } from '../lib/dates'
 import { Card, PageHeader, Tabs } from '../components/ui'
 import { TOOLTIP_STYLE } from '../components/chartStyle'
@@ -9,7 +10,26 @@ import { TOOLTIP_STYLE } from '../components/chartStyle'
 /*
  * KROK 10 – vedení školy vidí jen souhrnná čísla: zda učitelé dávají průběžnou
  * zpětnou vazbu, stanovují cíle a sledují pokrok. Žádná jména ani úrovně žáků.
+ * Se serverem počítá čísla databáze (funkce management_stats) – vedení nevidí žádné záznamy.
  */
+
+type Row = { id: string; label: string; school: string; as: number; fb: number; goals: number; done: number; self: number; sums: number; pupils: number; reached: number }
+type Week = { week: string; 'Záznamy se zpětnou vazbou': number; 'Stanovené cíle': number }
+
+async function remoteData(from: string, to: string, weeks: string[]): Promise<{ rows: Row[]; chart: Week[] }> {
+  const [main, ...perWeek] = await Promise.all([managementStats(from, to), ...weeks.map((w) => managementStats(w, addDays(w, 6)))])
+  const rows = main.map((r, i) => ({
+    id: String(i), label: `${r.class_name} · ${r.subject_name}`, school: r.school_type === 'ZS' ? 'ZŠ' : 'SŠ',
+    as: Number(r.records), fb: Number(r.with_feedback), goals: Number(r.goals), done: Number(r.goals_done), self: Number(r.self_assessed),
+    sums: Number(r.approved_summaries), pupils: Number(r.pupils), reached: Number(r.reached),
+  }))
+  const chart = weeks.map((w, i) => ({
+    week: w,
+    'Záznamy se zpětnou vazbou': perWeek[i].reduce((t, r) => t + Number(r.with_feedback), 0),
+    'Stanovené cíle': perWeek[i].reduce((t, r) => t + Number(r.goals), 0),
+  }))
+  return { rows, chart }
+}
 
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)} %` : '–')
 
@@ -18,7 +38,22 @@ export default function Management() {
   const [p, setP] = useState<'mesic' | 'pololeti'>('pololeti')
   const per = periodFor(p, today())
 
-  const rows = db.subjects.map((s) => {
+  const mon = weekStart(today())
+  const weeks = Array.from({ length: 10 }, (_, i) => addDays(mon, -7 * (9 - i)))
+  const [remote, setRemote] = useState<{ rows: Row[]; chart: Week[]; error?: string } | null>(null)
+  useEffect(() => {
+    if (!remoteEnabled) return
+    let alive = true
+    remoteData(per.from, per.to, weeks)
+      .then((d) => alive && setRemote(d))
+      .catch((e) => alive && setRemote({ rows: [], chart: [], error: (e as Error).message }))
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [per.from, per.to])
+
+  const localRows: Row[] = remoteEnabled ? [] : db.subjects.map((s) => {
     const cls = db.classes.find((c) => c.id === s.classId)
     const school = db.schools.find((x) => x.id === cls?.schoolId)
     const as = db.assessments.filter((a) => a.subjectId === s.id && inRange(a.date, per.from, per.to))
@@ -31,14 +66,13 @@ export default function Management() {
     return { id: s.id, label: `${cls?.name} · ${s.name}`, school: school?.type === 'ZS' ? 'ZŠ' : 'SŠ', as: as.length, fb: fb.length, goals: goals.length, done: goals.filter((g) => g.status === 'splneny').length, self: self.length, sums: sums.length, pupils, reached }
   })
 
+  const rows = remoteEnabled ? (remote?.rows ?? []) : localRows
   const total = rows.reduce(
     (t, r) => ({ as: t.as + r.as, fb: t.fb + r.fb, goals: t.goals + r.goals, done: t.done + r.done, self: t.self + r.self }),
     { as: 0, fb: 0, goals: 0, done: 0, self: 0 },
   )
 
-  const mon = weekStart(today())
-  const weeks = Array.from({ length: 10 }, (_, i) => addDays(mon, -7 * (9 - i)))
-  const chart = weeks.map((w) => {
+  const chart: Week[] = remoteEnabled ? (remote?.chart ?? []) : weeks.map((w) => {
     const as = db.assessments.filter((a) => weekStart(a.date) === w)
     return {
       week: w,
@@ -62,6 +96,8 @@ export default function Management() {
         subtitle="Souhrnné informace o používání průběžné zpětné vazby, stanovování cílů a sledování pokroku. Bez přístupu k jednotlivým žákům."
         actions={<Tabs value={p} onChange={setP} options={[{ value: 'mesic', label: 'Tento měsíc' }, { value: 'pololeti', label: 'Pololetí' }]} />}
       />
+      {remoteEnabled && !remote && <p className="mb-4 text-sm text-ink-faint" role="status">Načítám souhrnná čísla…</p>}
+      {remote?.error && <p className="mb-4 rounded-xl bg-bad-wash px-4 py-2 text-sm text-bad" role="alert">Čísla se nepodařilo načíst: {remote.error}</p>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map((t) => (
           <Card key={t.label}>

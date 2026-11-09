@@ -1,0 +1,20 @@
+# Nastavení projektu Supabase pro Pokrok žáka (supabase config push).
+project_id = "pokrok-zaka"
+
+[auth]
+# Adresa webu na GitHub Pages – kam vedou odkazy z e-mailů (potvrzení, obnova hesla).
+site_url = "https://tanuki-dot.github.io/pokrok-zaka/"
+additional_redirect_urls = ["http://localhost:5173/", "http://localhost:4317/"]
+enable_signup = true
+minimum_password_length = 10
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[functions.ai-navrh]
+verify_jwt = true
+
+[functions.zak-priloha]
+# Žák nemá účet – funkce ověřuje kód z QR / odkazu.
+verify_jwt = false

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Database, Download, FileSpreadsheet, FileText, Upload } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { replaceDB } from '../lib/store'
+import { remoteEnabled } from '../lib/remote'
 import { buildSheets, download, exportCsv, exportXlsx } from '../lib/exporter'
 import { today } from '../lib/dates'
 import type { DB } from '../lib/types'
@@ -37,12 +38,16 @@ export default function ExportPage() {
         </Card>
 
         <Card title="Záloha celé aplikace">
-          <p className="text-sm text-ink-soft">V demu jsou data jen v tomto prohlížeči. Zálohou je přenesete jinam nebo obnovíte.</p>
+          <p className="text-sm text-ink-soft">
+            {remoteEnabled
+              ? 'Data jsou uložená na serveru. Zálohou si stáhnete kopii všeho, co vidíte (bez souborů příloh).'
+              : 'V demu jsou data jen v tomto prohlížeči. Zálohou je přenesete jinam nebo obnovíte.'}
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={() => download(new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }), `pokrok-zaka-zaloha-${today()}.json`)}>
               <Database size={16} /> Stáhnout zálohu (.json)
             </Button>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold hover:border-sea-500 hover:text-sea-600">
+            {!remoteEnabled && <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold hover:border-sea-500 hover:text-sea-600">
               <Upload size={16} /> Obnovit ze zálohy
               <input
                 id="obnovit-zalohu"
@@ -60,7 +65,7 @@ export default function ExportPage() {
                   }
                 }}
               />
-            </label>
+            </label>}
           </div>
           {msg && <p role="status" className="mt-3 text-sm font-semibold">{msg}</p>}
         </Card>

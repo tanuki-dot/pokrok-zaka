@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import { BookOpenCheck, Check, CheckCircle2, CircleAlert, MessageSquarePlus } from 'lucide-react'
+import { BookOpenCheck, Check, CheckCircle2, CircleAlert, Loader2, MessageSquarePlus, Paperclip } from 'lucide-react'
 import { checkSelfCode, submitSelfAssessment, useDB } from '../lib/store'
+import { remoteEnabled, selfFormForCode, submitSelf, uploadStudentFile } from '../lib/remote'
 import { fmt } from '../lib/dates'
 import { GOAL_MET_LABEL, selfFormFor } from '../lib/questionnaire'
-import type { SelfAnswers } from '../lib/types'
+import type { Assessment, PeriodType, SelfAnswers, SelfFormDef, SelfWording } from '../lib/types'
+import { fmtSize } from '../lib/files'
 import { AttachmentList, AttachmentUpload } from '../components/Attachments'
 import { cx } from '../components/ui'
 
@@ -77,20 +79,162 @@ function Choice({ selected, multi, onClick, children }: { selected: boolean; mul
   )
 }
 
+/** Co žák na stránce vidí – v demu z dat v prohlížeči, se serverem z RPC podle kódu. */
+interface View {
+  assessmentId: string
+  date: string
+  goals: { id: string; text: string }[]
+  student: string
+  className: string
+  subject: string
+  form: SelfFormDef
+  correction: boolean
+  previous?: SelfAnswers
+  files: { id: string; name: string; size: number }[]
+}
+type Loaded = { view: View } | { error: 'neplatny' | 'vyprsel' | 'odeslano' } | null
+
+function useLocalView(code: string): Loaded {
+  const db = useDB()
+  if (remoteEnabled) return null
+  const check = checkSelfCode(code)
+  if (!check.ok) return { error: check.reason }
+  const a = check.assessment
+  const st = db.students.find((s) => s.id === a.studentId)
+  const cls = st ? db.classes.find((c) => c.id === st.classId) : undefined
+  return {
+    view: {
+      assessmentId: a.id,
+      date: a.date,
+      goals: a.goals,
+      student: st ? `${st.firstName} ${st.lastName}` : '',
+      className: cls?.name ?? '',
+      subject: db.subjects.find((s) => s.id === a.subjectId)?.name ?? '',
+      form: a.selfForm ?? selfFormFor(a.periodType, a.periodFrom, a.periodTo, cls?.selfWording),
+      correction: check.correction,
+      previous: check.previous?.answers,
+      files: [],
+    },
+  }
+}
+
+function useRemoteView(code: string): [Loaded, (f: { id: string; name: string; size: number }) => void, string] {
+  const [loaded, setLoaded] = useState<Loaded>(null)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    if (!remoteEnabled) return
+    selfFormForCode(code)
+      .then((r) => {
+        if (r.error) return setLoaded({ error: r.error as 'neplatny' })
+        const a = r.assessment as Pick<Assessment, 'id' | 'date' | 'goals' | 'selfForm'> & { periodType: PeriodType; periodFrom: string; periodTo: string }
+        const st = r.student as { firstName: string; lastName: string }
+        const cls = r.class as { name: string; selfWording?: SelfWording }
+        setLoaded({
+          view: {
+            assessmentId: a.id,
+            date: a.date,
+            goals: a.goals ?? [],
+            student: `${st.firstName} ${st.lastName}`,
+            className: cls.name,
+            subject: (r.subject as { name: string }).name,
+            form: a.selfForm ?? selfFormFor(a.periodType, a.periodFrom, a.periodTo, cls.selfWording ?? undefined),
+            correction: !!r.correction,
+            previous: (r.previous as SelfAnswers | null) ?? undefined,
+            files: (r.attachments as View['files']) ?? [],
+          },
+        })
+      })
+      .catch(() => setErr('Nepodařilo se spojit se serverem. Zkontroluj připojení a obnov stránku.'))
+  }, [code])
+  const addFile = (f: View['files'][number]) => setLoaded((l) => (l && 'view' in l ? { view: { ...l.view, files: [...l.view.files, f] } } : l))
+  return [loaded, addFile, err]
+}
+
+/** Každý kód = nová stránka (stav se nepřenáší mezi odkazy). */
 export default function SelfAssessmentPage() {
   const { code = '' } = useParams()
-  const db = useDB()
+  return <SelfPage key={code} code={code} />
+}
+
+function SelfPage({ code }: { code: string }) {
+  const local = useLocalView(code)
+  const [remote, addFile, netErr] = useRemoteView(code)
   const [done, setDone] = useState<null | 'new' | 'fixed'>(null)
-  const check = done ? null : checkSelfCode(code)
-  const prev = check?.ok ? check.previous?.answers : undefined
+  const loaded = remoteEnabled ? remote : local
+  const header = (
+    <div className="mb-6 flex items-center gap-2.5">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white"><BookOpenCheck size={20} /></span>
+      <span className="font-display text-lg font-bold">Sebehodnocení žáka</span>
+    </div>
+  )
+  const shell = (children: ReactNode) => (
+    <div className="min-h-full bg-canvas px-4 py-8">
+      <div className="mx-auto max-w-xl">
+        {header}
+        {children}
+      </div>
+    </div>
+  )
+
+  if (done)
+    return shell(
+      <div className="rounded-2xl border border-line bg-surface p-8 text-center" role="status">
+        <CheckCircle2 size={48} className="mx-auto text-good" />
+        <h1 className="mt-3 text-2xl font-bold">{done === 'fixed' ? 'Oprava uložena' : 'Sebehodnocení uloženo'}</h1>
+        <p className="mt-2 text-ink-soft">Tvoje odpovědi se úspěšně uložily. Učitel je uvidí vedle svého hodnocení a další cíl si stanovíte spolu.</p>
+        <p className="mt-4 text-sm text-ink-faint">Tuto stránku můžeš zavřít.</p>
+      </div>,
+    )
+
+  if (netErr) return shell(<div className="rounded-2xl border border-line bg-surface p-8" role="alert">{netErr}</div>)
+  if (!loaded)
+    return shell(
+      <div className="flex items-center gap-2 text-ink-faint" role="status"><Loader2 size={18} className="animate-spin" /> Načítám dotazník…</div>,
+    )
+
+  if ('error' in loaded)
+    return shell(
+      <div className="rounded-2xl border border-line bg-surface p-8">
+        <h1 className="text-xl font-bold">{loaded.error === 'vyprsel' ? 'Odkaz vypršel' : loaded.error === 'odeslano' ? 'Už odesláno' : 'Kód neplatí'}</h1>
+        <p className="mt-1 text-ink-soft">
+          {loaded.error === 'vyprsel'
+            ? 'Platnost odkazu skončila. Požádej učitele o nový.'
+            : loaded.error === 'odeslano'
+              ? 'Sebehodnocení k tomuto hodnocení už je odeslané. Pokud chceš něco opravit, požádej učitele o odkaz pro opravu.'
+              : `Kód „${code}“ neexistuje nebo už byl použit. Požádej učitele o nový odkaz.`}
+        </p>
+      </div>,
+    )
+
+  return (
+    <SelfForm
+      key={loaded.view.assessmentId}
+      code={code}
+      view={loaded.view}
+      header={header}
+      onFile={addFile}
+      onDone={() => {
+        setDone(loaded.view.correction ? 'fixed' : 'new')
+        window.scrollTo({ top: 0 })
+      }}
+    />
+  )
+}
+
+function SelfForm({ code, view, header, onFile, onDone }: {
+  code: string
+  view: View
+  header: ReactNode
+  onFile: (f: View['files'][number]) => void
+  onDone: () => void
+}) {
+  const db = useDB()
+  const prev = view.previous
   const [ans, setAns] = useState<Draft>(() => (prev ? { ...prev, notes: prev.notes ?? {} } : { nextWish: '', wentWell: [], improve: [], notes: {} }))
   const [errors, setErrors] = useState<Key[]>([])
-
-  const a = check?.ok ? check.assessment : undefined
-  const subj = a ? db.subjects.find((s) => s.id === a.subjectId) : undefined
-  const st = a ? db.students.find((s) => s.id === a.studentId) : undefined
-  const cls = st ? db.classes.find((c) => c.id === st.classId) : undefined
-  const form = a ? a.selfForm ?? selfFormFor(a.periodType, a.periodFrom, a.periodTo, cls?.selfWording) : undefined
+  const [busy, setBusy] = useState(false)
+  const [sendErr, setSendErr] = useState('')
+  const form = view.form
 
   const single = <K extends 'understanding' | 'work' | 'goalMet'>(k: K, v: NonNullable<Draft[K]>) => {
     setAns((s) => ({ ...s, [k]: v }))
@@ -112,7 +256,7 @@ export default function SelfAssessmentPage() {
   }
   const setNote = (k: Key) => (v: string) => setAns((s) => ({ ...s, notes: { ...s.notes, [k]: v } }))
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
     const missing = REQUIRED.filter((k) => {
       const v = ans[k]
@@ -124,52 +268,19 @@ export default function SelfAssessmentPage() {
       return
     }
     const notes = Object.fromEntries(Object.entries(ans.notes).filter(([, v]) => v?.trim()).map(([k, v]) => [k, v!.trim().slice(0, 300)]))
-    if (submitSelfAssessment(code, { ...(ans as SelfAnswers), notes }, form!)) {
-      setDone(check?.ok && check.correction ? 'fixed' : 'new')
-      window.scrollTo({ top: 0 })
+    const answers = { ...(ans as SelfAnswers), notes }
+    setSendErr('')
+    setBusy(true)
+    try {
+      const ok = remoteEnabled ? await submitSelf(code, answers, form) : submitSelfAssessment(code, answers, form)
+      if (ok) onDone()
+      else setSendErr('Odpovědi se nepodařilo uložit – odkaz už možná neplatí. Požádej učitele o nový.')
+    } catch {
+      setSendErr('Nepodařilo se spojit se serverem. Zkus to prosím znovu.')
+    } finally {
+      setBusy(false)
     }
   }
-
-  const header = (
-    <div className="mb-6 flex items-center gap-2.5">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white"><BookOpenCheck size={20} /></span>
-      <span className="font-display text-lg font-bold">Sebehodnocení žáka</span>
-    </div>
-  )
-
-  if (done)
-    return (
-      <div className="min-h-full bg-canvas px-4 py-8">
-        <div className="mx-auto max-w-xl">
-          {header}
-          <div className="rounded-2xl border border-line bg-surface p-8 text-center" role="status">
-            <CheckCircle2 size={48} className="mx-auto text-good" />
-            <h1 className="mt-3 text-2xl font-bold">{done === 'fixed' ? 'Oprava uložena' : 'Sebehodnocení uloženo'}</h1>
-            <p className="mt-2 text-ink-soft">Tvoje odpovědi se úspěšně uložily. Učitel je uvidí vedle svého hodnocení a další cíl si stanovíte spolu.</p>
-            <p className="mt-4 text-sm text-ink-faint">Tuto stránku můžeš zavřít.</p>
-          </div>
-        </div>
-      </div>
-    )
-
-  if (!check?.ok || !a || !form)
-    return (
-      <div className="min-h-full bg-canvas px-4 py-8">
-        <div className="mx-auto max-w-xl">
-          {header}
-          <div className="rounded-2xl border border-line bg-surface p-8">
-            <h1 className="text-xl font-bold">{check && !check.ok && check.reason === 'vyprsel' ? 'Odkaz vypršel' : check && !check.ok && check.reason === 'odeslano' ? 'Už odesláno' : 'Kód neplatí'}</h1>
-            <p className="mt-1 text-ink-soft">
-              {check && !check.ok && check.reason === 'vyprsel'
-                ? 'Platnost odkazu skončila. Požádej učitele o nový.'
-                : check && !check.ok && check.reason === 'odeslano'
-                  ? 'Sebehodnocení k tomuto hodnocení už je odeslané. Pokud chceš něco opravit, požádej učitele o odkaz pro opravu.'
-                  : `Kód „${code}“ neexistuje nebo už byl použit. Požádej učitele o nový odkaz.`}
-            </p>
-          </div>
-        </div>
-      </div>
-    )
 
   return (
     <div className="min-h-full bg-canvas px-4 py-8">
@@ -179,18 +290,18 @@ export default function SelfAssessmentPage() {
           <div className="rounded-2xl border border-line bg-surface p-5">
             <h1 className="text-2xl font-bold">Ahoj, jak se ti dařilo?</h1>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-              <dt className="text-ink-faint">Žák</dt><dd className="font-semibold">{st?.firstName} {st?.lastName}</dd>
-              <dt className="text-ink-faint">Třída</dt><dd>{cls?.name}</dd>
-              <dt className="text-ink-faint">Předmět</dt><dd>{subj?.name}</dd>
-              <dt className="text-ink-faint">Období</dt><dd>{form.rangeLabel ?? fmt(a.date)}</dd>
-              {a.goals.length > 0 && (
+              <dt className="text-ink-faint">Žák</dt><dd className="font-semibold">{view.student}</dd>
+              <dt className="text-ink-faint">Třída</dt><dd>{view.className}</dd>
+              <dt className="text-ink-faint">Předmět</dt><dd>{view.subject}</dd>
+              <dt className="text-ink-faint">Období</dt><dd>{form.rangeLabel ?? fmt(view.date)}</dd>
+              {view.goals.length > 0 && (
                 <>
-                  <dt className="text-ink-faint">{a.goals.length > 1 ? 'Cíle' : 'Cíl'}</dt>
-                  <dd><ul className="flex flex-col gap-0.5">{a.goals.map((g) => <li key={g.id}>{g.text}</li>)}</ul></dd>
+                  <dt className="text-ink-faint">{view.goals.length > 1 ? 'Cíle' : 'Cíl'}</dt>
+                  <dd><ul className="flex flex-col gap-0.5">{view.goals.map((g) => <li key={g.id}>{g.text}</li>)}</ul></dd>
                 </>
               )}
             </dl>
-            {check.correction && <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">Opravuješ už odeslané odpovědi. Uloží se nová verze.</p>}
+            {view.correction && <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">Opravuješ už odeslané odpovědi. Uloží se nová verze.</p>}
             <p className="mt-3 text-sm text-ink-faint">Otázky označené <span className="text-bad">*</span> jsou povinné. Zabere to asi 1–2 minuty.</p>
           </div>
 
@@ -249,19 +360,37 @@ export default function SelfAssessmentPage() {
 
           <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
             <div className="mb-2 font-bold">Přílohy <span className="text-sm font-semibold text-ink-faint">(nepovinné)</span></div>
-            <AttachmentUpload assessmentId={a.id} owner="zak" label="Přiložit fotografii práce, úkol, PDF, dokument nebo prezentaci" />
+            <AttachmentUpload
+              assessmentId={view.assessmentId}
+              owner="zak"
+              label="Přiložit fotografii práce, úkol, PDF, dokument nebo prezentaci"
+              onUpload={remoteEnabled ? async (f) => onFile(await uploadStudentFile(code, f)) : undefined}
+            />
             <div className="mt-2">
-              <AttachmentList items={db.attachments.filter((x) => x.assessmentId === a.id && x.owner === 'zak')} canDelete empty="" />
+              {remoteEnabled ? (
+                <ul className="flex flex-col divide-y divide-line">
+                  {view.files.map((f) => (
+                    <li key={f.id} className="flex items-center gap-2 py-2 text-sm">
+                      <Paperclip size={15} className="shrink-0 text-ink-faint" />
+                      <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
+                      <span className="text-xs text-ink-faint">{fmtSize(f.size)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <AttachmentList items={db.attachments.filter((x) => x.assessmentId === view.assessmentId && x.owner === 'zak')} canDelete empty="" />
+              )}
             </div>
           </div>
 
+          {sendErr && <p className="rounded-xl bg-bad-wash px-4 py-3 text-sm font-semibold text-bad" role="alert">{sendErr}</p>}
           {errors.length > 0 && (
             <p className="rounded-xl bg-bad-wash px-4 py-3 text-sm font-semibold text-bad" role="alert">
               Ještě chybí odpověď u otázky {errors.map((k) => REQUIRED.indexOf(k) + 1).join(', ')}.
             </p>
           )}
-          <button type="submit" className="min-h-13 w-full rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white hover:bg-brand-600">
-            {check.correction ? 'Uložit opravu' : 'Uložit sebehodnocení'}
+          <button type="submit" disabled={busy} className="min-h-13 w-full rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
+            {busy ? 'Ukládám…' : view.correction ? 'Uložit opravu' : 'Uložit sebehodnocení'}
           </button>
           <p className="text-center text-xs text-ink-faint">Odpovědi vidí jen tvůj učitel. Nejde o známku – slouží k tomu, abys věděl/a, jak dál.</p>
         </form>

@@ -8,9 +8,10 @@ import { switchSchoolType } from '../lib/selection'
 import { openPrivacy } from '../lib/privacy'
 import { LEVELS } from '../lib/analysis'
 import { cx } from '../components/ui'
+import { remoteEnabled } from '../lib/remote'
 
 /*
- * Úvodní stránka. Zatím bez přihlášení – tlačítka vedou rovnou do demo režimu.
+ * Úvodní stránka. V demu vedou tlačítka rovnou do aplikace, se serverem na přihlášení.
  * Odkazy uvnitř stránky nepoužívají #kotvy (aplikace má HashRouter), ale scrollIntoView.
  */
 
@@ -113,8 +114,9 @@ export default function Landing() {
 
   const openDemo = (type?: 'ZS' | 'SS') => {
     if (type && type !== db.settings.schoolType) switchSchoolType(db, type)
-    nav(db.settings.role === 'vedeni' ? '/vedeni' : '/prehled')
+    nav(remoteEnabled ? '/prihlaseni' : db.settings.role === 'vedeni' ? '/vedeni' : '/prehled')
   }
+  const cta = remoteEnabled ? 'Přihlásit se' : 'Vyzkoušet demo'
 
   return (
     <div className="min-h-full bg-canvas">
@@ -136,7 +138,7 @@ export default function Landing() {
             onClick={() => openDemo()}
             className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-600"
           >
-            Vyzkoušet demo <ArrowRight size={16} />
+            {cta} <ArrowRight size={16} />
           </button>
         </div>
       </header>
@@ -156,7 +158,7 @@ export default function Landing() {
               onClick={() => openDemo()}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white shadow-[0_10px_24px_-12px_rgba(14,148,136,.8)] hover:bg-brand-600"
             >
-              Vyzkoušet demo <ArrowRight size={18} />
+              {cta} <ArrowRight size={18} />
             </button>
             <button
               onClick={() => scrollTo('postup')}
@@ -165,7 +167,11 @@ export default function Landing() {
               Jak to funguje
             </button>
           </div>
-          <p className="mt-4 text-sm text-ink-faint">Bez přihlášení a instalace. Demo obsahuje fiktivní žáky ZŠ i SŠ.</p>
+          <p className="mt-4 text-sm text-ink-faint">
+            {remoteEnabled
+              ? 'Zkušební provoz: po přihlášení si nahrajete ukázkové třídy s fiktivními žáky ZŠ i SŠ.'
+              : 'Bez přihlášení a instalace. Demo obsahuje fiktivní žáky ZŠ i SŠ.'}
+          </p>
         </div>
         <HeroCard />
       </section>
@@ -255,7 +261,10 @@ export default function Landing() {
         <div className="mx-auto flex max-w-[1160px] flex-col gap-6 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-[clamp(1.6rem,3.5vw,2.25rem)] font-bold text-white">Vyzkoušejte si to na ukázkové třídě</h2>
-            <p className="mt-2 max-w-[56ch] text-white/85">Fiktivní žáci a záznamy za posledních devět týdnů. Data zůstávají jen ve vašem prohlížeči.</p>
+            <p className="mt-2 max-w-[56ch] text-white/85">
+              Fiktivní žáci a záznamy za posledních devět týdnů.{' '}
+              {remoteEnabled ? 'Po přihlášení zvolte „Nahrát ukázková data“.' : 'Data zůstávají jen ve vašem prohlížeči.'}
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <button onClick={() => openDemo('ZS')} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 font-semibold text-[#1b45a3] hover:bg-white/90">

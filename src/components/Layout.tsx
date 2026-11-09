@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, RotateCcw,
-  MessageSquareHeart, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X,
+  MessageSquareHeart, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X, LogOut, RefreshCw, CloudOff, Check, Loader2,
 } from 'lucide-react'
-import { resetDemo, setRole } from '../lib/store'
+import { resetDemo, retrySync, setRole } from '../lib/store'
+import { onSyncState, remoteEnabled, type SyncState } from '../lib/remote'
+import { refresh, signOut, useSession } from '../lib/session'
 import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
@@ -65,10 +67,14 @@ export function Layout({ children }: { children: ReactNode }) {
       ))}
 
       <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
-        <div className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
-          <strong className="block text-[13px]">Demonstrační aplikace</strong>
-          Fiktivní žáci a třídy. Data se ukládají jen v tomto prohlížeči.
-        </div>
+        {remoteEnabled ? (
+          <ServerBox />
+        ) : (
+          <div className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
+            <strong className="block text-[13px]">Demonstrační aplikace</strong>
+            Fiktivní žáci a třídy. Data se ukládají jen v tomto prohlížeči.
+          </div>
+        )}
         <div className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
           Vzhled
           <div className="grid grid-cols-3 rounded-xl border border-line bg-canvas p-1" role="radiogroup" aria-label="Vzhled">
@@ -92,6 +98,8 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </div>
         </div>
+{!remoteEnabled && (
+          <>
         <label className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
           Přihlášen jako
           <Select
@@ -117,6 +125,8 @@ export function Layout({ children }: { children: ReactNode }) {
           <button className="flex items-center gap-2 px-1 text-xs font-semibold text-ink-faint hover:text-ink" onClick={() => setConfirmReset(true)}>
             <RotateCcw size={14} /> Obnovit ukázková data
           </button>
+        )}
+          </>
         )}
         <button className="px-1 text-left text-xs font-semibold text-ink-faint hover:text-ink" onClick={openPrivacy}>
           Soukromí
@@ -199,6 +209,55 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         )}
         <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-7 sm:px-8">{children}</main>
+      </div>
+    </div>
+  )
+}
+
+/** Serverový režim: kdo je přihlášený, stav ukládání a odhlášení. */
+function ServerBox() {
+  const session = useSession()
+  const [sync, setSync] = useState<SyncState>({ status: 'idle' })
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    const off = onSyncState(setSync)
+    return () => void off()
+  }, [])
+  // Neuložené změny: upozornit před zavřením okna.
+  useEffect(() => {
+    if (sync.status === 'idle') return
+    const h = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', h)
+    return () => window.removeEventListener('beforeunload', h)
+  }, [sync.status])
+  const email = session.status === 'in' ? session.profile.email : ''
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
+      <div>
+        <strong className="block text-[13px]">Zkušební provoz</strong>
+        Jen fiktivní žáci – skutečné údaje zatím nezadávejte.
+      </div>
+      <div className="truncate font-semibold" title={email}>{email}</div>
+      <div role="status" className={cx('flex items-center gap-1.5 font-semibold', sync.status === 'error' && 'text-bad')}>
+        {sync.status === 'saving' && <><Loader2 size={13} className="animate-spin" /> Ukládám…</>}
+        {sync.status === 'idle' && <><Check size={13} /> Uloženo na serveru</>}
+        {sync.status === 'error' && <><CloudOff size={13} /> Neuloženo</>}
+      </div>
+      {sync.status === 'error' && (
+        <div className="flex flex-col gap-1">
+          <span className="text-ink-soft" title={sync.message}>Změny se nepodařilo uložit.</span>
+          <button className="w-fit font-semibold text-bad underline" onClick={() => void retrySync()}>Zkusit znovu</button>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <button className="flex items-center gap-1 font-semibold hover:underline" disabled={busy}
+          onClick={async () => { setBusy(true); await refresh(); setBusy(false) }}>
+          <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> Načíst znovu
+        </button>
+        <button className="flex items-center gap-1 font-semibold hover:underline" onClick={() => void signOut()}>
+          <LogOut size={13} /> Odhlásit
+        </button>
       </div>
     </div>
   )

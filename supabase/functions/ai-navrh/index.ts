@@ -7,13 +7,18 @@
 // Nasazení:
 //   supabase secrets set ANTHROPIC_API_KEY=...
 //   supabase functions deploy ai-navrh
-// Funkce ověřuje JWT (anon key projektu), klíč k API zůstává jen na serveru.
-// Aplikace posílá pseudonymizovaný kontext bez jména a třídy žáka (src/lib/ai.ts).
+// Funkci smí volat jen přihlášený učitel (ověří se jeho přihlášení), počet požadavků je
+// omezený na den. Klíč k API zůstává jen na serveru. Aplikace posílá pseudonymizovaný
+// kontext bez jména a třídy žáka (src/lib/ai.ts).
 
 import Anthropic from 'npm:@anthropic-ai/sdk@1.1.0'
+import { createClient } from 'npm:@supabase/supabase-js@2.118.0'
 
 const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 const MODEL = 'claude-opus-5-5'
+const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT') ?? '60')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const admin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
 const CORS = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
@@ -74,6 +79,18 @@ const json = (body: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Použijte POST.' }, 405)
+
+  // Jen přihlášený učitel (anon key nestačí).
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '')
+  const { data: userData } = await admin.auth.getUser(token)
+  const user = userData?.user
+  if (!user) return json({ error: 'Pro návrhy AI se přihlaste.' }, 401)
+
+  // Denní limit požadavků na učitele.
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: usage } = await admin.from('ai_usage').select('calls').eq('teacher_id', user.id).eq('day', today).maybeSingle()
+  if ((usage?.calls ?? 0) >= DAILY_LIMIT) return json({ error: `Denní limit ${DAILY_LIMIT} návrhů AI je vyčerpaný.` }, 429)
+  await admin.from('ai_usage').upsert({ teacher_id: user.id, day: today, calls: (usage?.calls ?? 0) + 1 })
 
   let body: { task?: string; length?: string; context?: unknown }
   try {

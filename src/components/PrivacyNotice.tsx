@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { acknowledgePrivacy, usePrivacy } from '../lib/privacy'
 import { aiAvailable } from '../lib/ai'
+import { remoteEnabled } from '../lib/remote'
 
 /** Jednorázová informace o soukromí. Souhlas se nevyžaduje – nic volitelného se nezpracovává. */
 export function PrivacyNotice() {
@@ -22,7 +23,10 @@ export function PrivacyNotice() {
         <div className="min-w-0 flex-1">
           <h2 id="soukromi-nadpis" className="text-[16px] font-bold">Bez cookies a bez sledování</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Aplikace nepoužívá cookies ani reklamní či analytické služby. Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.{aiAvailable && ' Návrhy pomocí AI vytváří server školy přes službu Anthropic – odesílají se jen údaje hodnocení bez jména a třídy žáka.'}
+            Aplikace nepoužívá cookies ani reklamní či analytické služby.{' '}
+            {remoteEnabled
+              ? 'Data učitelů, tříd a hodnocení ukládá do databáze Supabase (servery v EU), přihlášení drží v úložišti prohlížeče. Zatím jde o zkušební provoz jen s fiktivními žáky.'
+              : 'Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.'}{aiAvailable && ' Návrhy pomocí AI vytváří server školy přes službu Anthropic – odesílají se jen údaje hodnocení bez jména a třídy žáka.'}
           </p>
         </div>
         <button

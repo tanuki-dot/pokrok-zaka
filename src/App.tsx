@@ -19,19 +19,55 @@ import SelfAssessmentPage from './pages/SelfAssessment'
 import PrintSummary from './pages/PrintSummary'
 import Landing from './pages/Landing'
 import SelfResults from './pages/SelfResults'
+import Login from './pages/Login'
+import Onboarding from './pages/Onboarding'
+import { remoteEnabled } from './lib/remote'
+import { useSession } from './lib/session'
+import { Loader2 } from 'lucide-react'
+import { Button } from './components/ui'
 
 export default function App() {
   const db = useDB()
   const loc = useLocation()
 
-  // Úvodní stránka (zatím bez přihlášení, jen proklik do dema).
-  if (loc.pathname === '/') return <Landing />
+  const session = useSession()
 
-  // Stránky bez rozhraní učitele: sebehodnocení žáka (odkaz/QR) a tisk.
-  if (loc.pathname.startsWith('/sebehodnoceni/') || loc.pathname.startsWith('/tisk/')) {
+  // Úvodní stránka a sebehodnocení žáka (odkaz/QR) jsou veřejné.
+  if (loc.pathname === '/') return <Landing />
+  if (loc.pathname.startsWith('/sebehodnoceni/'))
     return (
       <Routes>
         <Route path="/sebehodnoceni/:code" element={<SelfAssessmentPage />} />
+      </Routes>
+    )
+
+  // Se serverem musí být učitel přihlášený.
+  if (remoteEnabled) {
+    if (session.status === 'loading')
+      return (
+        <div className="grid min-h-full place-items-center text-ink-faint" role="status">
+          <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Načítám data…</span>
+        </div>
+      )
+    if (session.status === 'error')
+      return (
+        <div className="grid min-h-full place-items-center px-4 text-center">
+          <div>
+            <p className="font-semibold">Data se nepodařilo načíst ze serveru.</p>
+            <p className="mt-1 text-sm text-ink-faint">{session.message}</p>
+            <Button className="mt-4" onClick={() => location.reload()}>Zkusit znovu</Button>
+          </div>
+        </div>
+      )
+    if (session.status === 'out') return <Login />
+    if (session.recovery) return <Login recovery />
+    if (loc.pathname === '/prihlaseni') return <Navigate to="/prehled" replace />
+  } else if (loc.pathname === '/prihlaseni') return <Navigate to="/prehled" replace />
+
+  // Tisk – bez rozhraní učitele.
+  if (loc.pathname.startsWith('/tisk/')) {
+    return (
+      <Routes>
         <Route path="/tisk/hodnoceni/:id" element={<PrintAssessment />} />
         <Route path="/tisk/:id" element={<PrintSummary />} />
       </Routes>
@@ -48,6 +84,14 @@ export default function App() {
       </Layout>
     )
   }
+
+  // První přihlášení bez tříd: ukázková data, nebo vlastní škola.
+  if (remoteEnabled && db.schools.length === 0)
+    return (
+      <Layout>
+        <Onboarding />
+      </Layout>
+    )
 
   return (
     <Layout>

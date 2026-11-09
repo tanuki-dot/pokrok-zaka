@@ -7,22 +7,33 @@ import { deleteFile, putFile } from './files'
 import { createDemoDB } from './seed'
 import { uid } from './util'
 import { migrate } from './migrate'
+import { remoteEnabled, retry, sync } from './remote'
+import { remapIds } from './remap'
 
 /**
- * Lokální úložiště pro demo režim (localStorage). Rozhraní akcí odpovídá tomu,
- * co by v ostrém provozu dělaly dotazy do Supabase – stačí vyměnit tělo funkcí.
+ * Data aplikace v paměti. Dva režimy:
+ *  - demo (bez nastaveného serveru): data v localStorage tohoto prohlížeče,
+ *  - server (VITE_SUPABASE_URL): po přihlášení se data načtou ze Supabase a každá změna
+ *    se zapíše do databáze (remote.sync). Do prohlížeče se pak nic neukládá.
  */
 
 const KEY = 'pokrok-zaka:v1'
 
-let db: DB = load()
+export const emptyDB = (): DB => ({
+  version: 3, schools: [], classes: [], students: [], subjects: [], criteria: [], units: [], assessments: [], selfAssessments: [],
+  attachments: [], goals: [], summaries: [], phrases: [], audit: [], settings: { role: 'ucitel', teacherName: '', schoolType: 'SS' },
+})
+
+let db: DB = remoteEnabled ? emptyDB() : load()
+/** V režimu serveru se změny zapisují až po načtení dat (ne během načítání). */
+let remoteReady = false
 const listeners = new Set<() => void>()
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
-      // Starší data (verze 1, obrácená škála) se převedou; neznámý formát → demo data.
+      // Starší data (obrácená škála apod.) se převedou; neznámý formát → demo data.
       const parsed = migrate(JSON.parse(raw))
       if (parsed) return parsed
     }
@@ -33,6 +44,7 @@ function load(): DB {
 }
 
 function persist() {
+  if (remoteEnabled) return
   try {
     localStorage.setItem(KEY, JSON.stringify(db))
   } catch {
@@ -44,13 +56,29 @@ function persist() {
 persist()
 
 function commit(next: DB) {
+  const prev = db
   db = next
   persist()
+  if (remoteEnabled && remoteReady) void sync(prev, next)
   listeners.forEach((l) => l())
 }
 
-// Synchronizace mezi kartami (např. žák odešle sebehodnocení v jiné kartě).
-if (typeof window !== 'undefined') {
+/** Data načtená ze serveru (bez zápisu zpět). */
+export function setLoaded(next: DB) {
+  db = next
+  remoteReady = true
+  listeners.forEach((l) => l())
+}
+/** Po odhlášení: vyprázdnit data v paměti. */
+export function clearLoaded() {
+  remoteReady = false
+  db = emptyDB()
+  listeners.forEach((l) => l())
+}
+export const retrySync = () => retry(db)
+
+// Synchronizace mezi kartami v demu (např. žák odešle sebehodnocení v jiné kartě).
+if (typeof window !== 'undefined' && !remoteEnabled) {
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY || !e.newValue) return
     try {
@@ -99,6 +127,22 @@ export function setSchoolType(schoolType: DB['settings']['schoolType']) {
 }
 export function resetDemo() {
   commit(createDemoDB())
+}
+/** Na serveru: přidá ukázková (fiktivní) data s novými identifikátory pro tohoto učitele. */
+export function seedDemoRemote(teacherName: string) {
+  const demo = remapIds(createDemoDB())
+  commit({
+    ...demo,
+    criteria: [...db.criteria, ...demo.criteria.filter((c) => c.subjectId)],
+    units: db.units.length ? db.units : demo.units,
+    settings: { ...db.settings, teacherName },
+    audit: [{ id: uid('a'), at: now(), action: 'vytvořeno', entity: 'ukázková data', label: 'fiktivní třídy ZŠ a SŠ' }],
+  })
+}
+export function addSchool(name: string, type: DB['settings']['schoolType']) {
+  const s = { id: uid('skola-'), name: name.trim(), type }
+  commit({ ...db, schools: [...db.schools, s], settings: { ...db.settings, schoolType: type }, audit: audit(db, 'vytvořeno', 'škola', s.name) })
+  return s
 }
 
 // ─── Třídy, předměty, žáci (KROK 1) ──────────────────────────────────────────
@@ -289,7 +333,8 @@ export function setSelfForm(assessmentId: string, form: SelfFormDef | undefined)
 
 export async function addAttachment(assessmentId: string, owner: Attachment['owner'], file: File): Promise<Attachment> {
   const att: Attachment = { id: uid('f'), assessmentId, owner, name: file.name, type: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
-  await putFile(att.id, file)
+  // Nejdřív soubor (na serveru až po zapsání hodnocení), potom záznam o příloze.
+  await putFile(att, file)
   const a = db.assessments.find((x) => x.id === assessmentId)
   commit({ ...db, attachments: [...db.attachments, att], audit: audit(db, 'vytvořeno', owner === 'zak' ? 'příloha žáka' : 'příloha', `${a ? studentName(db, a.studentId) : ''} · ${att.name}`) })
   return att
@@ -297,7 +342,7 @@ export async function addAttachment(assessmentId: string, owner: Attachment['own
 
 export async function removeAttachment(id: string) {
   const att = db.attachments.find((x) => x.id === id)
-  await deleteFile(id).catch(() => {})
+  if (att) await deleteFile(att).catch(() => {})
   commit({
     ...db,
     attachments: db.attachments.filter((x) => x.id !== id),
@@ -314,7 +359,7 @@ function addDaysISO(iso: string, n: number) {
 
 export function deleteAssessment(id: string) {
   const a = db.assessments.find((x) => x.id === id)
-  db.attachments.filter((x) => x.assessmentId === id).forEach((x) => void deleteFile(x.id).catch(() => {}))
+  db.attachments.filter((x) => x.assessmentId === id).forEach((x) => void deleteFile(x).catch(() => {}))
   commit({
     ...db,
     assessments: db.assessments.filter((x) => x.id !== id),
@@ -436,6 +481,7 @@ export function deleteSummary(id: string) {
 // ─── Záloha ──────────────────────────────────────────────────────────────────
 
 export function replaceDB(next: unknown) {
+  if (remoteEnabled) throw new Error('Obnova ze zálohy je dostupná jen v demu.')
   const n = migrate(next as Record<string, unknown>)
   if (!n) throw new Error('Neplatná záloha')
   commit({ ...n, audit: audit(n, 'importováno', 'záloha', `${n.assessments.length} záznamů`) })

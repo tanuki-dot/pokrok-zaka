@@ -6,7 +6,13 @@ import type { Attachment } from '../lib/types'
 import { cx, Pill } from './ui'
 
 /** Nahrání a seznam příloh jednoho hodnocení. owner určuje, kdo přílohu přidává. */
-export function AttachmentUpload({ assessmentId, owner, label }: { assessmentId: string; owner: Attachment['owner']; label: string }) {
+export function AttachmentUpload({ assessmentId, owner, label, onUpload }: {
+  assessmentId: string
+  owner: Attachment['owner']
+  label: string
+  /** Vlastní nahrání (žák na serveru nahrává přes kód, ne přes účet). */
+  onUpload?: (f: File) => Promise<void>
+}) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const inputId = `prilohy-${owner}-${assessmentId}`
@@ -41,9 +47,9 @@ export function AttachmentUpload({ assessmentId, owner, label }: { assessmentId:
               continue
             }
             try {
-              await addAttachment(assessmentId, owner, f)
-            } catch {
-              setErr(`Soubor „${f.name}“ se nepodařilo uložit.`)
+              await (onUpload ? onUpload(f) : addAttachment(assessmentId, owner, f))
+            } catch (e) {
+              setErr(onUpload && e instanceof Error ? `„${f.name}“: ${e.message}` : `Soubor „${f.name}“ se nepodařilo uložit.`)
             }
           }
           setBusy(false)
@@ -91,10 +97,10 @@ export function AttachmentList({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <button className="rounded-lg p-2 text-ink-soft hover:bg-sea-50 hover:text-sea-700" aria-label={`Otevřít ${f.name}`} onClick={() => openFile(f.id).catch((e) => setErr(e.message))}>
+              <button className="rounded-lg p-2 text-ink-soft hover:bg-sea-50 hover:text-sea-700" aria-label={`Otevřít ${f.name}`} onClick={() => openFile(f).catch((e) => setErr(e.message))}>
                 <ExternalLink size={16} />
               </button>
-              <button className="rounded-lg p-2 text-ink-soft hover:bg-sea-50 hover:text-sea-700" aria-label={`Stáhnout ${f.name}`} onClick={() => downloadFile(f.id, f.name).catch((e) => setErr(e.message))}>
+              <button className="rounded-lg p-2 text-ink-soft hover:bg-sea-50 hover:text-sea-700" aria-label={`Stáhnout ${f.name}`} onClick={() => downloadFile(f, f.name).catch((e) => setErr(e.message))}>
                 <Download size={16} />
               </button>
               {canDelete &&

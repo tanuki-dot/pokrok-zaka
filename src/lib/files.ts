@@ -1,9 +1,12 @@
 /*
  * Úložiště souborů příloh v prohlížeči (IndexedDB). Popis přílohy (název, typ, velikost,
  * vlastník) je v hlavních datech (DB.attachments), samotný obsah tady.
- * V demu jsou soubory jen v tomto prohlížeči; pro ostrý provoz patří do zabezpečeného
- * úložiště na serveru (Supabase Storage).
+ * S nastaveným serverem se soubory ukládají do Supabase Storage (bucket „prilohy“),
+ * v demu jen v tomto prohlížeči.
  */
+
+import type { Attachment } from './types'
+import { downloadFile as remoteDownload, remoteEnabled, removeFile as remoteRemove, uploadFile as remoteUpload } from './remote'
 
 const DB_NAME = 'pokrok-zaka-prilohy'
 const STORE = 'soubory'
@@ -31,23 +34,28 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   })
 }
 
-export const putFile = (id: string, blob: Blob) => tx('readwrite', (s) => s.put(blob, id))
-export const getFile = (id: string) => tx<Blob | undefined>('readonly', (s) => s.get(id) as IDBRequest<Blob | undefined>)
-export const deleteFile = (id: string) => tx('readwrite', (s) => s.delete(id))
+type Ref = Pick<Attachment, 'id' | 'assessmentId'>
+
+/** Uloží soubor přílohy – na server (Supabase Storage), nebo v demu do prohlížeče. */
+export const putFile = async (att: Ref, blob: Blob) =>
+  remoteEnabled ? remoteUpload(att.assessmentId, att.id, blob) : void (await tx('readwrite', (s) => s.put(blob, att.id)))
+export const getFile = (att: Ref): Promise<Blob | undefined> =>
+  remoteEnabled ? remoteDownload(att.assessmentId, att.id) : tx<Blob | undefined>('readonly', (s) => s.get(att.id) as IDBRequest<Blob | undefined>)
+export const deleteFile = async (att: Ref) => (remoteEnabled ? remoteRemove(att.assessmentId, att.id) : void (await tx('readwrite', (s) => s.delete(att.id))))
 
 /** Otevře přílohu v nové kartě. */
-export async function openFile(id: string) {
-  const blob = await getFile(id)
-  if (!blob) throw new Error('Soubor v tomto prohlížeči není.')
+export async function openFile(att: Ref) {
+  const blob = await getFile(att)
+  if (!blob) throw new Error(remoteEnabled ? 'Soubor se nepodařilo načíst ze serveru.' : 'Soubor v tomto prohlížeči není.')
   const url = URL.createObjectURL(blob)
   window.open(url, '_blank', 'noopener')
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 /** Stáhne přílohu pod původním názvem. */
-export async function downloadFile(id: string, name: string) {
-  const blob = await getFile(id)
-  if (!blob) throw new Error('Soubor v tomto prohlížeči není.')
+export async function downloadFile(att: Ref, name: string) {
+  const blob = await getFile(att)
+  if (!blob) throw new Error(remoteEnabled ? 'Soubor se nepodařilo načíst ze serveru.' : 'Soubor v tomto prohlížeči není.')
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

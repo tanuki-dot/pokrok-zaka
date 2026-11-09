@@ -28,7 +28,7 @@ export default function PrintAssessment() {
     let alive = true
     Promise.all(
       chosen.filter((f) => f.type.startsWith('image/')).map(async (f) => {
-        const b = await getFile(f.id).catch(() => undefined)
+        const b = await getFile(f).catch(() => undefined)
         if (!b) return null
         const u = URL.createObjectURL(b)
         urls.push(u)

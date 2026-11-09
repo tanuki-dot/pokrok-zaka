@@ -4,6 +4,7 @@ import { LEVELS } from './levels'
 import { describeSelf } from './questionnaire'
 import { periodLabel, teacherQuestions } from './periods'
 import { fileKind } from './files'
+import { accessToken, remoteEnabled, SUPABASE_URL } from './remote'
 import { goalSuggestions, missingInfo, proposeDevelopment, reportText, studentAssessments, type DraftLike } from './analysis'
 
 /*
@@ -11,27 +12,31 @@ import { goalSuggestions, missingInfo, proposeDevelopment, reportText, studentAs
  * a individuální rozvoj. AI běží jen na serveru (Supabase Edge Function
  * supabase/functions/ai-navrh), API klíč nikdy není v prohlížeči.
  *
- * Nastavení (soubor .env při sestavení):
- *   VITE_AI_FUNCTION_URL=https://<projekt>.supabase.co/functions/v1/ai-navrh
- *   VITE_SUPABASE_ANON_KEY=<anon key projektu>
- * Bez nastavení se použijí šablony z analysis.ts se stejnými pravidly.
+ * Funkci smí volat jen přihlášený učitel (server s VITE_SUPABASE_URL). V demu
+ * se použijí šablony z analysis.ts se stejnými pravidly.
  *
  * Do AI se posílají jen pseudonymizované údaje: bez jména, příjmení a třídy žáka.
  */
 
-const FN_URL = import.meta.env.VITE_AI_FUNCTION_URL as string | undefined
-const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// Funkce projektu Supabase, volaná s tokenem přihlášeného učitele.
+const FN_URL = remoteEnabled ? `${SUPABASE_URL}/functions/v1/ai-navrh` : undefined
+const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? ''
 export const aiAvailable = !!FN_URL
 
 type Task = 'cile' | 'hodnoceni' | 'rozvoj'
 
 async function call<T>(task: Task, context: unknown, length?: ReportLength): Promise<T> {
+  const token = await accessToken()
+  if (!token) throw new Error('nejste přihlášeni')
   const r = await fetch(FN_URL!, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(ANON ? { Authorization: `Bearer ${ANON}`, apikey: ANON } : {}) },
+    headers: { 'Content-Type': 'application/json', ...(ANON ? { apikey: ANON } : {}), Authorization: `Bearer ${token}` },
     body: JSON.stringify({ task, length, context }),
   })
-  if (!r.ok) throw new Error(`AI odpověděla chybou ${r.status}`)
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}) as { error?: string })
+    throw new Error(j.error ?? `AI odpověděla chybou ${r.status}`)
+  }
   return (await r.json()) as T
 }
 

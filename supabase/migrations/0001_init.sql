@@ -1,170 +1,156 @@
--- Pokrok žáka – schéma pro ostrý provoz (Supabase / Postgres, hosting v EU).
--- Odpovídá typům v src/lib/types.ts. Demo verze aplikace zatím běží nad localStorage
--- (src/lib/store.ts); při přechodu se vymění jen těla funkcí ve store.ts.
+-- Pokrok žáka – databáze pro Supabase (hosting v EU).
+-- Struktura odpovídá datovému modelu aplikace (src/lib/types.ts): identifikátory jsou texty
+-- vytvořené aplikací, vnořené části hodnocení (cíle, úrovně, dotazník, zpráva) jsou JSONB.
 --
--- Role:  učitel  – vidí a upravuje jen třídy, které učí (class_teachers)
---        vedení  – vidí jen agregovaná čísla přes view management_stats, žádné žáky
+-- Bezpečnost (RLS na všech tabulkách):
+--   učitel vidí a mění jen třídy, které učí (class_teachers; tvůrce třídy se přidá automaticky),
+--   žák nemá účet – k dotazníku se dostane jen přes platný jednorázový kód (funkce níže),
+--   vedení školy vidí jen souhrnná čísla (management_stats), žádná jména ani hodnocení žáků.
 
-create extension if not exists pgcrypto;
-
-create table schools (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  type text not null check (type in ('ZS', 'SS'))
-);
+-- ─── Profil učitele ──────────────────────────────────────────────────────────
 
 create table profiles (
   id uuid primary key references auth.users on delete cascade,
-  school_id uuid not null references schools,
-  full_name text not null,
-  role text not null default 'ucitel' check (role in ('ucitel', 'vedeni'))
+  full_name text not null default '',
+  role text not null default 'ucitel' check (role in ('ucitel', 'vedeni')),
+  school_id text,                                -- u vedení: škola, za kterou vidí souhrny
+  created_at timestamptz not null default now()
+);
+
+-- Profil se založí automaticky při registraci.
+create or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into profiles (id, full_name) values (new.id, coalesce(new.raw_user_meta_data->>'full_name', ''));
+  return new;
+end $$;
+create trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();
+
+-- ─── Školy, třídy, žáci, předměty ────────────────────────────────────────────
+
+create table schools (
+  id text primary key,
+  name text not null,
+  type text not null check (type in ('ZS', 'SS')),
+  created_by uuid not null default auth.uid() references auth.users on delete cascade
 );
 
 create table classes (
-  id uuid primary key default gen_random_uuid(),
-  school_id uuid not null references schools,
+  id text primary key,
+  school_id text not null references schools on delete cascade,
   name text not null,
-  grade smallint,                                         -- ročník (výběr tematických celků ŠVP)
-  field text,                                             -- obor (SŠ)
-  self_wording text not null default 'standard' check (self_wording in ('standard', 'mladsi'))
+  grade smallint,
+  field text,
+  self_wording text not null default 'standard' check (self_wording in ('standard', 'mladsi')),
+  created_by uuid not null default auth.uid() references auth.users on delete cascade
 );
 
 create table class_teachers (
-  class_id uuid references classes on delete cascade,
-  teacher_id uuid references profiles on delete cascade,
+  class_id text references classes on delete cascade,
+  teacher_id uuid references auth.users on delete cascade,
   primary key (class_id, teacher_id)
 );
 
+-- Tvůrce třídy ji automaticky učí.
+create or replace function add_class_creator() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into class_teachers (class_id, teacher_id) values (new.id, new.created_by) on conflict do nothing;
+  return new;
+end $$;
+create trigger on_class_created after insert on classes for each row execute function add_class_creator();
+
 create table students (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references classes on delete cascade,
+  id text primary key,
+  class_id text not null references classes on delete cascade,
   first_name text not null,
   last_name text not null
 );
 
 create table subjects (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references classes on delete cascade,
+  id text primary key,
+  class_id text not null references classes on delete cascade,
   name text not null,
   hidden_defaults text[] not null default '{}'
 );
 
--- subject_id null = výchozí oblast pro všechny předměty (7 oblastí ze zadání)
+-- Dovednosti: subject_id null = společné pro všechny předměty (katalog), jinak vlastní dovednost předmětu.
 create table criteria (
-  id text primary key default gen_random_uuid()::text,
-  subject_id uuid references subjects on delete cascade,
+  id text primary key,
+  subject_id text references subjects on delete cascade,
   name text not null,
   question text not null default '',
-  archived boolean not null default false               -- starší dovednost: jen v historii
+  archived boolean not null default false
 );
 
--- Hodnocené dovednosti (pokrokveskole.docx); vlastní dovednosti mají subject_id.
-insert into criteria (id, subject_id, name, question) values
-  ('k-znalosti', null, 'Porozumění učivu', 'Rozumí žák učivu a dokáže ho vysvětlit?'),
-  ('k-reseni', null, 'Řešení problémů', 'Dokáže učivo použít při řešení úloh?'),
-  ('k-samostatnost', null, 'Samostatnost', 'Zvládne pracovat bez pomoci?'),
-  ('k-spoluprace', null, 'Spolupráce', 'Dokáže pracovat s ostatními?'),
-  ('k-komunikace', null, 'Komunikace', 'Srozumitelně vyjadřuje své myšlenky a postupy?'),
-  ('k-organizace', null, 'Organizace práce', 'Plánuje si práci a dokončí ji včas?'),
-  ('k-tvorivost', null, 'Tvořivost', 'Přichází s vlastními nápady a řešeními?'),
-  ('k-kriticke', null, 'Kritické myšlení', 'Ověřuje informace a posuzuje výsledky?'),
-  ('k-digitalni', null, 'Digitální kompetence', 'Účelně a bezpečně používá digitální technologie?'),
-  ('k-zpetna-vazba', null, 'Práce se zpětnou vazbou', 'Využívá zpětnou vazbu ke zlepšení?');
-
--- Tematické celky ŠVP (katalog školy + vlastní celky učitele).
+-- Tematické celky ŠVP: school_id null = ukázkový katalog, jinak vlastní celky školy/učitele.
 create table topic_units (
-  id uuid primary key default gen_random_uuid(),
-  school_id uuid not null references schools on delete cascade,
+  id text primary key,
+  school_id text references schools on delete cascade,
   subject_name text not null,
   grades smallint[] not null default '{}',
+  school_type text check (school_type in ('ZS', 'SS')),
   name text not null,
-  goals text[] not null default '{}',                    -- připravené vzdělávací cíle
-  created_by uuid references profiles default auth.uid()
+  goals text[] not null default '{}',
+  custom boolean not null default false,
+  created_by uuid default auth.uid() references auth.users on delete cascade
 );
 
+-- ─── Hodnocení ───────────────────────────────────────────────────────────────
+
 create table assessments (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid not null references students on delete cascade,
-  subject_id uuid not null references subjects on delete cascade,
-  teacher_id uuid not null references profiles default auth.uid(),
-  date date not null default current_date,
-  topic text not null default '',
-  period_type text not null default 'hodina' check (period_type in ('hodina', 'tyden', 'mesic', 'pololeti', 'rok', 'vlastni')),
+  id text primary key,
+  student_id text not null references students on delete cascade,
+  subject_id text not null references subjects on delete cascade,
+  teacher_id uuid not null default auth.uid() references auth.users,
+  date date not null,
+  period_type text not null check (period_type in ('hodina', 'tyden', 'mesic', 'pololeti', 'rok', 'vlastni')),
   period_from date not null,
   period_to date not null check (period_to >= period_from),
-  units uuid[] not null default '{}',                     -- tematické celky ŠVP
-  skills text[] not null default '{}',                    -- dovednosti vybrané pro hodnocení
-  skill_notes jsonb not null default '{}',                -- komentář učitele ke každé dovednosti
-  teacher_q jsonb not null default '{}',                  -- dotazník učitele podle období
-  report jsonb,                                           -- formativní zpráva (délka, text, původní návrh, schválení, přílohy)
-  self_form jsonb,                                        -- dotazník pro žáka upravený učitelem
-  status text not null default 'rozpracovane' check (status in ('rozpracovane', 'dokoncene')),
-  scores_original jsonb,                                  -- původní hodnoty u převedených záznamů
-  fb_good text not null default '',                       -- slovní zpětná vazba je nepovinná
-  fb_todo text not null default '',
-  fb_next text not null default '',
-  swot_s text not null default '',                        -- individuální rozvoj: co žák zvládá
-  swot_w text not null default '',
-  swot_o text not null default '',
-  swot_t text not null default '',
-  swot_proposed boolean not null default false,
+  units text[] not null default '{}',
+  topic text not null default '',
+  goals jsonb not null default '[]',          -- [{id, text, status: splneno|castecne|nesplneno|null}]
+  skills text[] not null default '{}',
+  scores jsonb not null default '{}',         -- {criterionId: 1–5}; 1 = výborně … 5 = zatím nezvládá; chybí = nehodnoceno
+  skill_notes jsonb not null default '{}',
+  teacher_q jsonb not null default '{}',      -- dotazník učitele podle období
+  feedback jsonb not null default '{}',
+  swot jsonb not null default '{}',           -- individuální rozvoj žáka (4 pole)
+  report jsonb,                               -- formativní zpráva (délka, text, původní návrh, schválení, přílohy)
   next_goal text not null default '',
-  self_code text unique,                                  -- jednorázový kód pro sebehodnocení (QR)
+  self_form jsonb,                            -- dotazník pro žáka upravený učitelem
+  status text not null default 'rozpracovane' check (status in ('rozpracovane', 'dokoncene')),
+  self_code text unique,                      -- jednorázový kód pro sebehodnocení (QR / odkaz)
   self_code_expires timestamptz,
-  self_code_correction boolean not null default false,    -- kód pro řízenou opravu odpovědí
+  self_code_correction boolean not null default false,
+  scores_original jsonb,                      -- původní hodnoty u převedených záznamů
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table assessment_scores (
-  assessment_id uuid references assessments on delete cascade,
-  criterion_id text references criteria on delete cascade,
-  level smallint not null check (level between 1 and 5),  -- 1 = výborně … 5 = zatím nezvládá; chybí = nehodnoceno
-  primary key (assessment_id, criterion_id)
+create table self_assessments (
+  id text primary key,
+  assessment_id text not null unique references assessments on delete cascade,
+  answers jsonb,                              -- odpovědi žáka (subjektivní pohled, nepřevádí se na známku)
+  form jsonb,                                 -- znění dotazníku, na který žák odpovídal
+  legacy jsonb,                               -- starší podoba (volné odpovědi)
+  submitted_at timestamptz not null default now(),
+  corrections smallint not null default 0
 );
 
--- Vzdělávací cíle hodnocení (může jich být více, každý se splněním zvlášť).
-create table assessment_goals (
-  id uuid primary key default gen_random_uuid(),
-  assessment_id uuid not null references assessments on delete cascade,
-  position smallint not null default 0,
-  text text not null,
-  status text check (status in ('splneno', 'castecne', 'nesplneno'))  -- null = neoznačeno
-);
-
--- Přílohy (soubory v Supabase Storage, bucket „prilohy“, cesta <assessment_id>/<id>).
 create table attachments (
-  id uuid primary key default gen_random_uuid(),
-  assessment_id uuid not null references assessments on delete cascade,
+  id text primary key,
+  assessment_id text not null references assessments on delete cascade,
   owner text not null check (owner in ('ucitel', 'zak')),
   name text not null,
-  mime_type text not null,
-  size_bytes integer not null check (size_bytes <= 10485760),
-  storage_path text not null,
+  type text not null,
+  size integer not null check (size <= 10485760),
   added_at timestamptz not null default now()
 );
 
--- Sebehodnocení žáka podle období (pokrokveskole.docx, snímek 4). Nepřevádí se na známku.
-create table self_assessments (
-  id uuid primary key default gen_random_uuid(),
-  assessment_id uuid not null unique references assessments on delete cascade,
-  understanding smallint not null check (understanding between 1 and 3),  -- 1. porozumění (3 = rozumím a dokážu použít)
-  work smallint not null check (work between 1 and 3),                    -- 2. práce (3 = samostatně)
-  went_well text[] not null default '{}',                                 -- 3. co se povedlo (více možností)
-  improve text[] not null default '{}',                                   -- 4. co zlepšit (volba „nic“ jen samostatně – hlídá aplikace)
-  goal_met text not null check (goal_met in ('ano', 'castecne', 'zatimne')), -- 5. splnění cíle
-  next_wish text not null default '' check (char_length(next_wish) <= 500), -- 6. nepovinné
-  notes jsonb not null default '{}',                                      -- vlastní poznámky žáka k otázkám
-  form jsonb not null,                                                    -- znění dotazníku (podle období / úprav učitele)
-  corrections smallint not null default 0,
-  submitted_at timestamptz not null default now()
-);
-
 create table goals (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid not null references students on delete cascade,
-  subject_id uuid not null references subjects on delete cascade,
-  assessment_id uuid references assessments on delete set null,
+  id text primary key,
+  student_id text not null references students on delete cascade,
+  subject_id text not null references subjects on delete cascade,
+  assessment_id text references assessments on delete set null,
   text text not null,
   set_on date not null,
   due date not null,
@@ -172,137 +158,205 @@ create table goals (
 );
 
 create table summaries (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid not null references students on delete cascade,
-  subject_id uuid not null references subjects on delete cascade,
-  kind text not null check (kind in ('tyden', 'mesic', 'pololeti')),
+  id text primary key,
+  student_id text not null references students on delete cascade,
+  subject_id text not null references subjects on delete cascade,
+  kind text not null check (kind in ('tyden', 'mesic', 'pololeti', 'rok', 'vlastni')),
   period_from date not null,
   period_to date not null,
-  sections jsonb not null,          -- [{key,title,sentences:[{id,text,sources[]}]}]
+  sections jsonb not null default '[]',
+  sections_original jsonb,
   teacher_note text not null default '',
   status text not null default 'navrh' check (status in ('navrh', 'schvaleno')),
-  version int not null default 1,
+  version integer not null default 1,
   history jsonb not null default '[]',
-  approved_by uuid references profiles,
-  approved_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  approved_at timestamptz
 );
 
 create table phrases (
-  id uuid primary key default gen_random_uuid(),
-  teacher_id uuid references profiles on delete cascade default auth.uid(),
+  id text primary key,
+  teacher_id uuid not null default auth.uid() references auth.users on delete cascade,
   kind text not null check (kind in ('good', 'todo', 'next')),
   text text not null
 );
 
+-- Historie změn (kdo co kdy změnil) – zapisuje aplikace, číst ji smí jen autor.
 create table audit_log (
-  id bigint generated always as identity primary key,
+  id text primary key,
   at timestamptz not null default now(),
-  actor uuid default auth.uid(),
-  entity text not null,
-  entity_id text not null,
+  actor uuid not null default auth.uid() references auth.users on delete cascade,
   action text not null,
-  diff jsonb
+  entity text not null,
+  label text not null default ''
 );
 
--- ─── Audit: kdo co kdy změnil (záznamy jde opravovat) ───────────────────────
-create or replace function log_change() returns trigger language plpgsql security definer as $$
-begin
-  insert into audit_log (entity, entity_id, action, diff)
-  values (tg_table_name, coalesce(new.id, old.id)::text, lower(tg_op),
-          case when tg_op = 'UPDATE' then jsonb_build_object('old', to_jsonb(old), 'new', to_jsonb(new)) else null end);
-  return coalesce(new, old);
-end $$;
+-- Omezení použití AI (počet požadavků na učitele a den) – zapisuje jen serverová funkce.
+create table ai_usage (
+  teacher_id uuid not null references auth.users on delete cascade,
+  day date not null default current_date,
+  calls integer not null default 0,
+  primary key (teacher_id, day)
+);
 
-create trigger audit_assessments after insert or update or delete on assessments for each row execute function log_change();
-create trigger audit_goals after insert or update or delete on goals for each row execute function log_change();
-create trigger audit_summaries after insert or update or delete on summaries for each row execute function log_change();
+create index on students (class_id);
+create index on subjects (class_id);
+create index on assessments (student_id);
+create index on assessments (subject_id);
+create index on goals (student_id);
+create index on summaries (student_id);
+create index on attachments (assessment_id);
 
--- ─── Row Level Security ─────────────────────────────────────────────────────
-create or replace function teaches(c uuid) returns boolean language sql stable security definer as $$
+-- ─── Oprávnění (RLS) ─────────────────────────────────────────────────────────
+
+create or replace function teaches(c text) returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from class_teachers where class_id = c and teacher_id = auth.uid())
 $$;
+create or replace function teaches_student(s text) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from students st join class_teachers ct on ct.class_id = st.class_id where st.id = s and ct.teacher_id = auth.uid())
+$$;
+create or replace function teaches_subject(p text) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from subjects sb join class_teachers ct on ct.class_id = sb.class_id where sb.id = p and ct.teacher_id = auth.uid())
+$$;
+create or replace function owns_assessment(a text) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from assessments x where x.id = a and teaches_student(x.student_id))
+$$;
 
-alter table schools enable row level security;
 alter table profiles enable row level security;
+alter table schools enable row level security;
 alter table classes enable row level security;
 alter table class_teachers enable row level security;
 alter table students enable row level security;
 alter table subjects enable row level security;
 alter table criteria enable row level security;
-alter table assessments enable row level security;
-alter table assessment_scores enable row level security;
-alter table assessment_goals enable row level security;
-alter table attachments enable row level security;
 alter table topic_units enable row level security;
+alter table assessments enable row level security;
 alter table self_assessments enable row level security;
+alter table attachments enable row level security;
 alter table goals enable row level security;
 alter table summaries enable row level security;
 alter table phrases enable row level security;
 alter table audit_log enable row level security;
+alter table ai_usage enable row level security;
 
-create policy own_profile on profiles for select using (id = auth.uid());
-create policy own_school on schools for select using (id = (select school_id from profiles where id = auth.uid()));
-create policy my_classes on classes for all using (teaches(id));
-create policy my_class_links on class_teachers for select using (teacher_id = auth.uid());
-create policy my_students on students for all using (teaches(class_id));
-create policy my_subjects on subjects for all using (teaches(class_id));
-create policy criteria_read on criteria for select using (subject_id is null or teaches((select class_id from subjects s where s.id = subject_id)));
-create policy criteria_write on criteria for all using (subject_id is not null and teaches((select class_id from subjects s where s.id = subject_id)));
-create policy my_assessments on assessments for all using (teaches((select class_id from students s where s.id = student_id)));
-create policy my_scores on assessment_scores for all using (exists (select 1 from assessments a where a.id = assessment_id));
-create policy my_assessment_goals on assessment_goals for all using (exists (select 1 from assessments a where a.id = assessment_id));
-create policy my_attachments on attachments for all using (exists (select 1 from assessments a where a.id = assessment_id));
-create policy units_read on topic_units for select using (school_id = (select school_id from profiles where id = auth.uid()));
-create policy units_write on topic_units for all using (created_by = auth.uid());
-create policy my_self on self_assessments for select using (exists (select 1 from assessments a where a.id = assessment_id));
-create policy my_goals on goals for all using (teaches((select class_id from students s where s.id = student_id)));
-create policy my_summaries on summaries for all using (teaches((select class_id from students s where s.id = student_id)));
-create policy my_phrases on phrases for all using (teacher_id = auth.uid());
--- audit_log: čte jen služba / správce, ne klient.
+create policy profile_own on profiles for select using (id = auth.uid());
+-- Učitel si smí změnit jméno, ne roli ani školu (ty nastavuje správce).
+create or replace function my_role() returns text language sql stable security definer set search_path = public as $$ select role from profiles where id = auth.uid() $$;
+create or replace function my_school() returns text language sql stable security definer set search_path = public as $$ select school_id from profiles where id = auth.uid() $$;
+create policy profile_update on profiles for update using (id = auth.uid()) with check (id = auth.uid() and role = my_role() and school_id is not distinct from my_school());
 
--- ─── Sebehodnocení žáka bez účtu: jednorázový kód ───────────────────────────
--- Volá se anonymně (anon key). Kód po odevzdání zanikne.
-create or replace function submit_self_assessment(
-  p_code text, p_understanding smallint, p_work smallint, p_went_well text[], p_improve text[], p_goal_met text,
-  p_next_wish text, p_notes jsonb, p_form jsonb
-) returns boolean language plpgsql security definer as $$
-declare a_id uuid; is_fix boolean; existing boolean;
+create policy schools_read on schools for select using (created_by = auth.uid() or id = my_school() or exists (select 1 from classes c where c.school_id = schools.id and teaches(c.id)));
+create policy schools_write on schools for all using (created_by = auth.uid()) with check (created_by = auth.uid());
+
+create policy classes_read on classes for select using (teaches(id) or created_by = auth.uid());
+create policy classes_insert on classes for insert with check (created_by = auth.uid() and exists (select 1 from schools s where s.id = school_id and s.created_by = auth.uid()));
+create policy classes_update on classes for update using (teaches(id)) with check (teaches(id));
+create policy classes_delete on classes for delete using (created_by = auth.uid());
+
+create policy class_teachers_read on class_teachers for select using (teacher_id = auth.uid());
+
+create policy students_all on students for all using (teaches(class_id)) with check (teaches(class_id));
+create policy subjects_all on subjects for all using (teaches(class_id)) with check (teaches(class_id));
+
+create policy criteria_read on criteria for select using (subject_id is null or teaches_subject(subject_id));
+create policy criteria_write on criteria for all using (subject_id is not null and teaches_subject(subject_id)) with check (subject_id is not null and teaches_subject(subject_id));
+
+create policy units_read on topic_units for select using ((school_id is null and not custom) or created_by = auth.uid() or (school_id is not null and exists (select 1 from classes c where c.school_id = topic_units.school_id and teaches(c.id))));
+create policy units_write on topic_units for all using (created_by = auth.uid() and custom) with check (created_by = auth.uid() and custom);
+
+create policy assessments_all on assessments for all using (teaches_student(student_id)) with check (teaches_student(student_id) and teaches_subject(subject_id));
+create policy self_read on self_assessments for select using (owns_assessment(assessment_id));
+create policy self_write on self_assessments for all using (owns_assessment(assessment_id)) with check (owns_assessment(assessment_id));
+create policy attachments_all on attachments for all using (owns_assessment(assessment_id)) with check (owns_assessment(assessment_id));
+create policy goals_all on goals for all using (teaches_student(student_id)) with check (teaches_student(student_id));
+create policy summaries_all on summaries for all using (teaches_student(student_id)) with check (teaches_student(student_id));
+create policy phrases_all on phrases for all using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
+create policy audit_read on audit_log for select using (actor = auth.uid());
+create policy audit_insert on audit_log for insert with check (actor = auth.uid());
+-- ai_usage: bez politik → přístup jen pro serverovou funkci (service role).
+
+-- ─── Přílohy v úložišti (bucket „prilohy“, cesta <assessment_id>/<attachment_id>) ──
+
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('prilohy', 'prilohy', false, 10485760)
+on conflict (id) do nothing;
+
+create policy prilohy_read on storage.objects for select to authenticated
+  using (bucket_id = 'prilohy' and owns_assessment(split_part(name, '/', 1)));
+create policy prilohy_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'prilohy' and owns_assessment(split_part(name, '/', 1)));
+create policy prilohy_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'prilohy' and owns_assessment(split_part(name, '/', 1)));
+-- Žák nahrává přes serverovou funkci zak-priloha (ověří kód), přímý přístup nemá.
+
+-- ─── Sebehodnocení žáka bez účtu (jen přes platný kód) ───────────────────────
+
+-- Údaje pro dotazník: jen to, co žák smí vidět (své jméno, třída, předmět, období, cíle).
+create or replace function self_form_for_code(p_code text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a assessments; r jsonb; prev self_assessments;
 begin
-  -- Kód musí platit, patří k jedinému hodnocení a po použití zanikne (žádné duplicitní odeslání).
-  -- Žák tak má přístup jen ke svému dotazníku, ne k ostatním hodnocením.
-  select id, self_code_correction into a_id, is_fix from assessments
-    where self_code = upper(p_code) and (self_code_expires is null or self_code_expires > now())
-    for update;
-  if a_id is null then return false; end if;
-  select exists(select 1 from self_assessments where assessment_id = a_id) into existing;
-  if existing and not is_fix then return false; end if;
-  update assessments set self_code = null, self_code_expires = null, self_code_correction = false where id = a_id;
-  insert into self_assessments (assessment_id, understanding, work, went_well, improve, goal_met, next_wish, notes, form)
-  values (a_id, p_understanding, p_work, p_went_well, p_improve, p_goal_met, left(p_next_wish, 500), coalesce(p_notes, '{}'), p_form)
-  on conflict (assessment_id) do update set understanding = excluded.understanding, work = excluded.work,
-    went_well = excluded.went_well, improve = excluded.improve, goal_met = excluded.goal_met,
-    next_wish = excluded.next_wish, notes = excluded.notes, form = excluded.form,
-    corrections = self_assessments.corrections + 1, submitted_at = now();
+  select * into a from assessments where self_code = upper(p_code);
+  if a.id is null then return jsonb_build_object('error', 'neplatny'); end if;
+  if a.self_code_expires is not null and a.self_code_expires < now() then return jsonb_build_object('error', 'vyprsel'); end if;
+  select * into prev from self_assessments where assessment_id = a.id;
+  if prev.id is not null and not a.self_code_correction then return jsonb_build_object('error', 'odeslano'); end if;
+  select jsonb_build_object(
+    'assessment', jsonb_build_object('id', a.id, 'date', a.date, 'periodType', a.period_type, 'periodFrom', a.period_from, 'periodTo', a.period_to, 'goals', a.goals, 'selfForm', a.self_form),
+    'student', jsonb_build_object('firstName', st.first_name, 'lastName', st.last_name),
+    'class', jsonb_build_object('name', c.name, 'selfWording', c.self_wording),
+    'subject', jsonb_build_object('name', sb.name),
+    'correction', a.self_code_correction,
+    'previous', case when a.self_code_correction then prev.answers else null end,
+    'attachments', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'name', x.name, 'size', x.size)) from attachments x where x.assessment_id = a.id and x.owner = 'zak'), '[]')
+  ) into r
+  from students st join classes c on c.id = st.class_id join subjects sb on sb.id = a.subject_id
+  where st.id = a.student_id;
+  return r;
+end $$;
+
+-- Uložení odpovědí: kód musí platit, je jednorázový (po odeslání zanikne), oprava jen s kódem pro opravu.
+create or replace function submit_self_assessment(p_code text, p_answers jsonb, p_form jsonb) returns boolean language plpgsql security definer set search_path = public as $$
+declare a assessments; existing self_assessments;
+begin
+  select * into a from assessments where self_code = upper(p_code) and (self_code_expires is null or self_code_expires > now()) for update;
+  if a.id is null then return false; end if;
+  select * into existing from self_assessments where assessment_id = a.id;
+  if existing.id is not null and not a.self_code_correction then return false; end if;
+  if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 20000 then return false; end if;
+  update assessments set self_code = null, self_code_expires = null, self_code_correction = false, updated_at = now() where id = a.id;
+  insert into self_assessments (id, assessment_id, answers, form, submitted_at, corrections)
+  values ('z' || replace(gen_random_uuid()::text, '-', ''), a.id, p_answers, p_form, now(), 0)
+  on conflict (assessment_id) do update set answers = excluded.answers, form = excluded.form, legacy = null,
+    submitted_at = now(), corrections = self_assessments.corrections + 1;
   return true;
 end $$;
-grant execute on function submit_self_assessment to anon;
 
--- ─── Vedení školy: jen agregace, žádná jména ani úrovně žáků ───────────────
+revoke all on function self_form_for_code(text) from public;
+revoke all on function submit_self_assessment(text, jsonb, jsonb) from public;
+grant execute on function self_form_for_code(text) to anon, authenticated;
+grant execute on function submit_self_assessment(text, jsonb, jsonb) to anon, authenticated;
+
+-- ─── Vedení školy: jen souhrnná čísla, žádná jména ani hodnocení žáků ────────
+
 create or replace function management_stats(p_from date, p_to date)
-returns table (class_name text, subject_name text, records bigint, with_feedback bigint, goals bigint, goals_done bigint, self_assessed bigint, approved_summaries bigint)
-language sql stable security definer as $$
-  select c.name, sub.name,
+returns table (class_name text, school_type text, subject_name text, records bigint, with_feedback bigint, goals bigint, goals_done bigint, self_assessed bigint, approved_summaries bigint, pupils bigint, reached bigint)
+language sql stable security definer set search_path = public as $$
+  select c.name, s.type, sub.name,
     count(distinct a.id),
-    count(distinct a.id) filter (where a.fb_good <> '' and a.fb_next <> ''),
+    count(distinct a.id) filter (where coalesce(a.feedback->>'good', '') <> '' and coalesce(a.feedback->>'next', '') <> ''),
     (select count(*) from goals g where g.subject_id = sub.id and g.set_on between p_from and p_to),
     (select count(*) from goals g where g.subject_id = sub.id and g.set_on between p_from and p_to and g.status = 'splneny'),
     count(distinct sa.id),
-    (select count(*) from summaries s where s.subject_id = sub.id and s.status = 'schvaleno' and s.period_to between p_from and p_to)
+    (select count(*) from summaries x where x.subject_id = sub.id and x.status = 'schvaleno' and x.period_to between p_from and p_to),
+    (select count(*) from students st where st.class_id = c.id),
+    count(distinct a.student_id)
   from subjects sub
   join classes c on c.id = sub.class_id
+  join schools s on s.id = c.school_id
   left join assessments a on a.subject_id = sub.id and a.date between p_from and p_to
   left join self_assessments sa on sa.assessment_id = a.id
   where c.school_id = (select school_id from profiles where id = auth.uid() and role = 'vedeni')
-  group by c.name, sub.name, sub.id
+  group by c.id, c.name, s.type, sub.id, sub.name
 $$;
+revoke all on function management_stats(date, date) from public;
+grant execute on function management_stats(date, date) to authenticated;

@@ -11,6 +11,8 @@ import type { Assessment, SelfAssessment, SelfFormDef } from '../../lib/types'
 import { Button, Card, Input, Pill } from '../../components/ui'
 import { AttachmentList } from '../../components/Attachments'
 import type { StepProps } from './Wizard'
+import { remoteEnabled } from '../../lib/remote'
+import { refresh } from '../../lib/session'
 
 export default function StepSelf({ a, setDirty }: StepProps) {
   const db = useDB()
@@ -193,7 +195,14 @@ function SelfLink({ a }: { a: Assessment }) {
           <a href={url} target="_blank" rel="noreferrer"><Button variant="ghost">Otevřít jako žák</Button></a>
           <Button variant="ghost" onClick={() => revokeSelfCode(a.id)}><X size={15} /> Zrušit odkaz</Button>
         </div>
-        <p className="text-xs text-ink-faint">V demonstrační aplikaci se odpovědi ukládají v tomto prohlížeči – otevřete odkaz v nové kartě.</p>
+        {remoteEnabled ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+            Až žák odešle odpovědi, načtěte je:
+            <Button variant="ghost" onClick={() => void refresh()}><RefreshCw size={14} /> Načíst odpovědi žáka</Button>
+          </div>
+        ) : (
+          <p className="text-xs text-ink-faint">V demonstrační aplikaci se odpovědi ukládají v tomto prohlížeči – otevřete odkaz v nové kartě.</p>
+        )}
       </div>
     </div>
   )

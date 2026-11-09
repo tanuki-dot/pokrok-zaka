@@ -12,9 +12,7 @@ npm run dev        # http://localhost:5173
 npm run build      # produkční build do dist/
 ```
 
-Po otevření se ukáže úvodní stránka s tlačítkem „Vyzkoušet demo“ (přihlášení zatím není). Přehled učitele je na `#/prehled`.
-
-Aplikace běží v **demo režimu**: obsahuje fiktivní třídy ZŠ (7.A) i SŠ (ME1) s ukázkovými záznamy za posledních 9 týdnů. Data se ukládají v prohlížeči (localStorage). Tlačítkem „Obnovit ukázková data“ vlevo dole se vrátí do výchozího stavu.
+Bez nastavení serveru běží aplikace v **demo režimu**: úvodní stránka má tlačítko „Vyzkoušet demo“, přehled učitele je na `#/prehled` a aplikace obsahuje fiktivní třídy ZŠ (7.A) i SŠ (ME1) s ukázkovými záznamy za posledních 9 týdnů. Data se ukládají v prohlížeči (localStorage). Tlačítkem „Obnovit ukázková data“ vlevo dole se vrátí do výchozího stavu.
 
 Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a PDF jsou vždy světlé.
 
@@ -34,29 +32,42 @@ Vzhled jde přepnout vlevo dole: světlý, tmavý, nebo podle systému. Tisk a P
 
 **1 = výborně, 2 = velmi dobře, 3 = částečně zvládá, 4 = potřebuje výraznou pomoc, 5 = zatím nezvládá.** Nevybraná dovednost = nehodnoceno a nezapočítává se do souhrnů ani grafů. Data ze starších verzí se při prvním otevření převedou podle významu (`src/lib/migrate.ts`): z verze 0.0.5 (1 = nejnižší) jako 6 − hodnota, verze 0.0.4 už měla stejný směr. Původní hodnoty zůstávají u každého záznamu (`scoresOriginal`), původní znění souhrnů v `sectionsOriginal`. Dovednosti ze starších verzí jsou archivované – zůstávají v historii, pro nová hodnocení se nenabízí.
 
-### AI (připraveno pro server)
+### AI
 
-Návrh cílů, slovní formativní hodnocení a individuální rozvoj umí vytvořit AI (Claude, model `claude-opus-5-5`) přes serverovou funkci `supabase/functions/ai-navrh`. API klíč je jen na serveru, aplikace posílá údaje bez jména a třídy žáka. Bez nastavení serveru se použijí šablony (`src/lib/analysis.ts`) se stejnými pravidly: vychází jen z uložených údajů, odlišuje hodnocení učitele od pohledu žáka, chybějící údaje nevydává za splněné ani nesplněné a upozorní na ně.
+Návrh cílů, slovní formativní hodnocení a individuální rozvoj umí vytvořit AI (Claude, model `claude-opus-5-5`) přes serverovou funkci `supabase/functions/ai-navrh`. API klíč je jen na serveru, funkci smí volat jen přihlášený učitel (denní limit `AI_DAILY_LIMIT`, výchozí 60 návrhů) a aplikace posílá údaje bez jména a třídy žáka. Bez serveru se použijí šablony (`src/lib/analysis.ts`) se stejnými pravidly: vychází jen z uložených údajů, odlišuje hodnocení učitele od pohledu žáka, chybějící údaje nevydává za splněné ani nesplněné a upozorní na ně.
 
-Zapnutí AI:
+## Server (Supabase + GitHub Pages)
+
+S nastaveným Supabase se učitel přihlašuje e-mailem a heslem, data jsou v databázi (RLS – každý učitel vidí jen své třídy), přílohy v úložišti Supabase Storage, žák vyplňuje sebehodnocení z mobilu přes kód (bez účtu) a vedení školy vidí jen souhrnná čísla. Webová aplikace běží na GitHub Pages.
+
+Zatím je to **zkušební provoz jen s fiktivními žáky** – po prvním přihlášení zvolte „Nahrát ukázková data“.
+
 ```bash
-supabase secrets set ANTHROPIC_API_KEY=...
+supabase login
+supabase link --project-ref <ref>          # projekt v EU (Frankfurt)
+supabase db push                           # schéma, RLS, katalog dovedností a celků ŠVP
+supabase config push                       # přihlášení: adresa webu, potvrzení e-mailu, délka hesla
+supabase secrets set ANTHROPIC_API_KEY=... # klíč zadejte sami, nikam jinam ho nedávejte
 supabase functions deploy ai-navrh
-# a při sestavení aplikace (.env):
-VITE_AI_FUNCTION_URL=https://<projekt>.supabase.co/functions/v1/ai-navrh
-VITE_SUPABASE_ANON_KEY=<anon key>
+supabase functions deploy zak-priloha --no-verify-jwt
 ```
+
+Na GitHubu nastavte proměnné repozitáře `VITE_SUPABASE_URL` a `VITE_SUPABASE_ANON_KEY` (obě jsou veřejné) a v Settings → Pages zdroj „GitHub Actions“. Workflow `.github/workflows/pages.yml` pak po každém pushi do `main` aplikaci sestaví a nasadí. Lokálně stačí soubor `.env.local` podle `.env.example`.
+
+Účet vedení školy: v tabulce `profiles` nastavte `role = 'vedeni'` a `school_id` (SQL editor Supabase).
 
 ## Struktura
 
 ```
 src/lib/types.ts      datový model
-src/lib/store.ts      akce nad daty (demo: localStorage, místo pro Supabase)
+src/lib/store.ts      akce nad daty (demo: localStorage, se serverem zápis změn do Supabase)
+src/lib/remote.ts     Supabase: načtení dat, zápis změn, přílohy, sebehodnocení přes kód
+src/lib/session.ts    přihlášení učitele
 src/lib/seed.ts       demo data (fiktivní žáci)
 src/lib/levels.ts     škála 1–5 (1 = výborně)
 src/lib/periods.ts    hodnocená období, dotazník učitele podle období
 src/lib/catalog.ts    dovednosti, ukázkový katalog tematických celků ŠVP
-src/lib/files.ts      přílohy (IndexedDB v prohlížeči)
+src/lib/files.ts      přílohy (Supabase Storage, v demu IndexedDB)
 src/lib/ai.ts         návrhy pomocí AI (server), jinak šablony
 src/pages/eval/*      průvodce hodnocením (4 kroky)
 src/lib/analysis.ts   souhrny, formativní zpráva, individuální rozvoj, doporučení, návrh cílů (šablony)
@@ -65,19 +76,18 @@ src/lib/migrate.ts    převod starších dat (obrácená škála)
 src/lib/exporter.ts   export xlsx / csv
 src/pages/*           obrazovky
 supabase/migrations   schéma pro ostrý provoz (RLS, audit, období, cíle, přílohy, sebehodnocení přes kód s platností)
-supabase/functions    serverová funkce pro AI
+supabase/functions    ai-navrh (AI), zak-priloha (nahrání práce žáka přes kód)
 ```
 
-## Na ostrý provoz (zatím není hotové)
+## Na ostrý provoz se skutečnými žáky (zatím není hotové)
 
-Dokud nejsou splněné a ověřené tyto podmínky, aplikace zůstává **demonstrační** – zadávejte jen fiktivní údaje:
-- Přepojit `store.ts` na Supabase (schéma `supabase/migrations/0001_init.sql`), bezpečné přihlášení učitelů a oddělené role učitele a žáka.
-- Přílohy uložit do zabezpečeného úložiště (Supabase Storage) místo prohlížeče.
-- Hosting v EU, RLS na všech tabulkách (připraveno ve schématu), audit log, ochrana osobních údajů podle GDPR (záznam o zpracování, posouzení vlivu, smlouva se zpracovatelem; při zapnutí AI i se službou Anthropic).
+Dokud nejsou splněné tyto podmínky, zadávejte jen fiktivní údaje:
+- Ochrana osobních údajů podle GDPR: záznam o zpracování, posouzení vlivu, smlouvy se zpracovateli (Supabase, při zapnutí AI i Anthropic), informace pro rodiče.
+- Správa účtů školou (pozvánky místo volné registrace), zálohy databáze, kontrola RLS politik.
 
 ## Soukromí
 
-Aplikace nepoužívá cookies ani reklamní či analytické služby; bez nastavené AI ani žádné služby třetích stran. Písma (Figtree, Bricolage Grotesque, licence SIL OFL 1.1) jsou přibalená přes Fontsource, takže se nic nenačítá z Google Fonts. Nezbytná data se ukládají jen v prohlížeči (localStorage, přílohy v IndexedDB). Záloha `.json` obsahuje data, ne soubory příloh. Při první návštěvě se jednou zobrazí informační lišta, později je dostupná přes odkaz „Soukromí“. Pokud v budoucnu přibude něco volitelného (např. analytika), je potřeba vrátit volbu Přijmout / Odmítnout (viz `src/lib/privacy.ts`).
+Aplikace nepoužívá cookies ani reklamní či analytické služby; bez nastavené AI ani žádné služby třetích stran. Písma (Figtree, Bricolage Grotesque, licence SIL OFL 1.1) jsou přibalená přes Fontsource, takže se nic nenačítá z Google Fonts. V demu se data ukládají jen v prohlížeči (localStorage, přílohy v IndexedDB), se serverem v databázi Supabase. Záloha `.json` obsahuje data, ne soubory příloh. Při první návštěvě se jednou zobrazí informační lišta, později je dostupná přes odkaz „Soukromí“. Pokud v budoucnu přibude něco volitelného (např. analytika), je potřeba vrátit volbu Přijmout / Odmítnout (viz `src/lib/privacy.ts`).
 
 ## Licence
 
