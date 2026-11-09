@@ -33,8 +33,21 @@ export default function StepTeacher({ a, setDirty, goTo }: StepProps) {
   const [goals, setGoals] = useState<AssessmentGoal[]>(asm.goals)
   const [newSkill, setNewSkill] = useState('')
   const [touched, setTouched] = useState(false)
+  const [savedAt, setSavedAt] = useState('')
   useEffect(() => setDirty(touched), [touched, setDirty])
   const touch = () => setTouched(true)
+
+  // #7: automatické ukládání rozpracovaného hodnocení (debounce 1,5 s po poslední změně).
+  useEffect(() => {
+    if (!touched) return
+    const t = setTimeout(() => {
+      saveAssessment({ ...asm, skills, scores, skillNotes: Object.fromEntries(Object.entries(notes).filter(([k, v]) => skills.includes(k) && v.trim())), teacherQ: tq, goals })
+      setSavedAt(new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }))
+      setTouched(false)
+    }, 1500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [touched, skills, scores, notes, tq, goals])
 
   const prev = studentAssessments(db, asm.studentId, asm.subjectId).filter((x) => x.id !== asm.id && x.date <= asm.date)
   const questions = teacherQuestions(asm.periodType, asm.periodFrom, asm.periodTo)
@@ -220,6 +233,7 @@ export default function StepTeacher({ a, setDirty, goTo }: StepProps) {
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="brand" onClick={save}><Check size={17} /> Uložit hodnocení učitele</Button>
         {!Object.keys(scores).length && <span className="text-sm text-ink-faint">Zatím není ohodnocena žádná dovednost.</span>}
+        {savedAt && !touched && <span className="inline-flex items-center gap-1 text-sm text-ink-faint"><Check size={14} className="text-good" /> Automaticky uloženo v {savedAt}</span>}
       </div>
     </div>
   )

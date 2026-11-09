@@ -40,8 +40,21 @@ export default function StepReport({ a, setDirty }: StepProps) {
   const [note, setNote] = useState('')
   const [flash, setFlash] = useState('')
   const [touched, setTouched] = useState(false)
+  const [autoSavedAt, setAutoSavedAt] = useState('')
   useEffect(() => setDirty(touched), [touched, setDirty])
   const started = useRef(false)
+
+  // #7: automatické ukládání rozpracovaného návrhu (bez schválení) 2 s po poslední úpravě.
+  useEffect(() => {
+    if (!touched) return
+    const t = setTimeout(() => {
+      saveReport(asm.id, rep, { ...dev, t: dev.t.trim() || NO_OBSTACLES }, false)
+      setAutoSavedAt(new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }))
+      setTouched(false)
+    }, 2000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [touched, rep, dev])
 
   const units = asm.units.map((id) => db.units.find((u) => u.id === id)?.name).filter(Boolean) as string[]
   const attachments = db.attachments.filter((x) => x.assessmentId === asm.id)
@@ -198,7 +211,8 @@ export default function StepReport({ a, setDirty }: StepProps) {
         <a href={`#/tisk/hodnoceni/${asm.id}`} target="_blank" rel="noreferrer">
           <Button variant="primary"><Printer size={15} /> Tisk / uložit jako PDF</Button>
         </a>
-        {touched && <span className="text-sm text-warn">Neuložené změny, nezapomeňte uložit.</span>}
+        {touched ? <span className="text-sm text-warn">Neuložené změny, ukládají se automaticky…</span>
+          : autoSavedAt && <span className="inline-flex items-center gap-1 text-sm text-ink-faint"><Check size={14} className="text-good" /> Automaticky uloženo v {autoSavedAt} (jako rozpracované)</span>}
       </div>
     </div>
   )
