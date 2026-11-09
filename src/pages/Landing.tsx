@@ -8,6 +8,7 @@ import { switchSchoolType } from '../lib/selection'
 import { openPrivacy } from '../lib/privacy'
 import { LEVELS } from '../lib/analysis'
 import { cx } from '../components/ui'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { remoteEnabled } from '../lib/remote'
 
 /*
@@ -134,12 +135,15 @@ export default function Landing() {
               </button>
             ))}
           </nav>
-          <button
-            onClick={() => openDemo()}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-          >
-            {cta} <ArrowRight size={16} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle compact />
+            <button
+              onClick={() => openDemo()}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+            >
+              {cta} <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       </header>
 

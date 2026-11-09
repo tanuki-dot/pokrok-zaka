@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, BookOpenCheck, ClipboardPen, Download, FileText, FolderOpen, GraduationCap, History, LayoutDashboard, Menu, RotateCcw,
-  MessageSquareHeart, Monitor, Moon, School, SlidersHorizontal, Sun, Users, X, LogOut, RefreshCw, CloudOff, Check, Loader2,
+  MessageSquareHeart, School, SlidersHorizontal, Users, X, LogOut, RefreshCw, CloudOff, Check, Loader2,
 } from 'lucide-react'
 import { resetDemo, retrySync, setRole } from '../lib/store'
 import { onSyncState, remoteEnabled, type SyncState } from '../lib/remote'
@@ -10,7 +10,7 @@ import { refresh, signOut, useSession } from '../lib/session'
 import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
-import { setTheme, useTheme, type ThemePref } from '../lib/theme'
+import { ThemeToggle } from './ThemeToggle'
 import { openPrivacy } from '../lib/privacy'
 
 const TEACHER_NAV = [
@@ -35,7 +35,6 @@ export function Layout({ children }: { children: ReactNode }) {
   const role = db.settings.role
   const items = role === 'ucitel' ? TEACHER_NAV : MGMT_NAV
   const [confirmReset, setConfirmReset] = useState(false)
-  const theme = useTheme()
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Hlavní navigace">
@@ -77,26 +76,7 @@ export function Layout({ children }: { children: ReactNode }) {
         )}
         <div className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
           Vzhled
-          <div className="grid grid-cols-3 rounded-xl border border-line bg-canvas p-1" role="radiogroup" aria-label="Vzhled">
-            {([
-              ['light', 'Světlý', Sun],
-              ['dark', 'Tmavý', Moon],
-              ['system', 'Systém', Monitor],
-            ] as [ThemePref, string, typeof Sun][]).map(([v, label, Icon]) => (
-              <button
-                key={v}
-                role="radio"
-                aria-checked={theme === v}
-                onClick={() => setTheme(v)}
-                className={cx(
-                  'flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-xs font-semibold',
-                  theme === v ? 'bg-surface text-ink shadow-sm' : 'text-ink-faint hover:text-ink',
-                )}
-              >
-                <Icon size={13} /> {label}
-              </button>
-            ))}
-          </div>
+          <ThemeToggle />
         </div>
 {!remoteEnabled && (
           <>
