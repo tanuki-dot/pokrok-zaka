@@ -11,6 +11,7 @@ import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
 import { ThemeToggle } from './ThemeToggle'
+import { ConfirmDialog } from './ConfirmDialog'
 import { LOGOUT_OPTIONS, setIdleMinutes, useAutoLogout, useIdleMinutes } from '../lib/autologout'
 import { openPrivacy } from '../lib/privacy'
 
@@ -213,6 +214,7 @@ function ServerBox() {
   const session = useSession()
   const [sync, setSync] = useState<SyncState>({ status: 'idle' })
   const [busy, setBusy] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   useEffect(() => {
     const off = onSyncState(setSync)
     return () => void off()
@@ -249,10 +251,19 @@ function ServerBox() {
           onClick={async () => { setBusy(true); await refresh(); setBusy(false) }}>
           <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> Načíst znovu
         </button>
-        <button className="flex items-center gap-1 font-semibold hover:underline" onClick={() => void signOut()}>
+        <button className="flex items-center gap-1 font-semibold hover:underline" onClick={() => setConfirmLogout(true)}>
           <LogOut size={13} /> Odhlásit
         </button>
       </div>
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Odhlásit se?"
+        message="Neuložené změny se před odhlášením uloží. Pro další přihlášení budete muset znovu zadat heslo."
+        confirmLabel="Odhlásit"
+        cancelLabel="Zůstat přihlášen"
+        onConfirm={() => { setConfirmLogout(false); void signOut() }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </div>
   )
 }
