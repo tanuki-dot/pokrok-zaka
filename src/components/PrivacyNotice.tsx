@@ -26,7 +26,20 @@ export function PrivacyNotice() {
             Aplikace nepoužívá cookies ani reklamní či analytické služby.{' '}
             {remoteEnabled
               ? 'Data učitelů, tříd a hodnocení ukládá do databáze Supabase (servery v EU), přihlášení drží v úložišti prohlížeče. Zatím jde o testovací provoz jen s fiktivními žáky.'
-              : 'Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.'}{aiAvailable && ' Návrhy pomocí AI vytváří server školy přes službu Anthropic – odesílají se jen údaje hodnocení bez jména a třídy žáka.'}
+              : 'Ukázková data, vybranou třídu, vzhled a přílohy ukládá jen ve vašem prohlížeči. Smazat je můžete vymazáním dat stránky v prohlížeči.'}
+            {aiAvailable && (
+              <>
+                {' '}Návrhy pomocí AI zpracovává jako zpracovatel společnost Anthropic (Claude, servery mimo EU – v USA). Posílají se jen pseudonymizované údaje hodnocení bez jména, příjmení a třídy žáka; podle podmínek Anthropic se údaje z API nepoužívají k trénování modelů. V testovacím provozu jde navíc jen o fiktivní data.{' '}
+                <a
+                  href="https://www.anthropic.com/legal/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-sea-600 underline underline-offset-2 hover:text-sea-700"
+                >
+                  Zásady ochrany soukromí Anthropic
+                </a>.
+              </>
+            )}
           </p>
         </div>
         <button
