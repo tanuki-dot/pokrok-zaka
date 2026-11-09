@@ -6,7 +6,7 @@ import { fmt, fmtShort, relative } from '../lib/dates'
 import { periodLabel } from '../lib/periods'
 import { recommendations, studentAssessments, supportReasons } from '../lib/analysis'
 import { fullName } from '../lib/util'
-import { Button, Card, PageHeader, Pill } from '../components/ui'
+import { Button, Card, Help, PageHeader, Pill } from '../components/ui'
 
 const LESSON_GOAL = [
   { key: 'splneno', label: 'Splněno', tone: 'good', color: 'var(--color-lv1)' },
@@ -140,7 +140,7 @@ export default function Dashboard() {
 
       <Card
         className="mt-5"
-        title={<span className="inline-flex items-center gap-2"><HeartHandshake size={18} className="text-sea-600" /> Žáci, kteří potřebují větší podporu</span>}
+        title={<span className="inline-flex items-center gap-2"><HeartHandshake size={18} className="text-sea-600" /> Žáci, kteří potřebují větší podporu <Help>Seznam sestavuje aplikace z posledních hodnocení: nízké úrovně, poklesy, opakovaně nesplněné cíle a sebehodnocení žáka. U každého nabídne konkrétní doporučení.</Help></span>}
         action={<span className="text-xs text-ink-faint">{subj?.name} · podle posledních hodnocení</span>}
       >
         {support.length === 0 ? (

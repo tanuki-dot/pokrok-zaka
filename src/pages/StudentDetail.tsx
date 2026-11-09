@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowLeft, ClipboardPen, CopyPlus, FileText, Pencil, Printer, UserCheck } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, ClipboardPen, CopyPlus, FileText, Pencil, Printer, UserCheck } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { setSelection } from '../lib/selection'
 import { setGoalStatus, setSchoolType } from '../lib/store'
@@ -206,6 +206,11 @@ export default function StudentDetail() {
 
   if (!st) return <Empty title="Žák nenalezen" />
   const cls = db.classes.find((c) => c.id === st.classId)
+  // #12: rychlé přecházení mezi žáky třídy (předchozí/další podle abecedy).
+  const classmates = db.students.filter((s) => s.classId === st.classId).sort((a, b) => a.lastName.localeCompare(b.lastName, 'cs') || a.firstName.localeCompare(b.firstName, 'cs'))
+  const myIdx = classmates.findIndex((s) => s.id === st.id)
+  const prevSt = myIdx > 0 ? classmates[myIdx - 1] : undefined
+  const nextSt = myIdx >= 0 && myIdx < classmates.length - 1 ? classmates[myIdx + 1] : undefined
   const goals = db.goals.filter((g) => g.studentId === st.id && g.subjectId === subj?.id).sort((a, b) => b.setOn.localeCompare(a.setOn))
   const summaries = db.summaries.filter((s) => s.studentId === st.id && s.subjectId === subj?.id).sort((a, b) => b.from.localeCompare(a.from))
   const activeSeries = active ? weeklyLevels(criterionSeries(as, active.id)) : []
@@ -213,7 +218,20 @@ export default function StudentDetail() {
 
   return (
     <>
-      <Link to="/zaci" className="no-print mb-3 inline-flex items-center gap-1 text-sm font-semibold text-ink-soft hover:text-ink"><ArrowLeft size={15} /> Žáci</Link>
+      <div className="no-print mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Link to="/zaci" className="inline-flex items-center gap-1 text-sm font-semibold text-ink-soft hover:text-ink"><ArrowLeft size={15} /> Žáci</Link>
+        {classmates.length > 1 && (
+          <div className="flex items-center gap-1.5 sm:ml-auto">
+            {prevSt ? (
+              <Link to={`/zaci/${prevSt.id}`} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-ink-soft hover:border-sea-500 hover:text-sea-700" title={`${prevSt.firstName} ${prevSt.lastName}`}><ChevronLeft size={15} /> Předchozí</Link>
+            ) : <span className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-ink-faint/50"><ChevronLeft size={15} /> Předchozí</span>}
+            <span className="tabular px-1 text-xs text-ink-faint">{myIdx + 1} / {classmates.length}</span>
+            {nextSt ? (
+              <Link to={`/zaci/${nextSt.id}`} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-ink-soft hover:border-sea-500 hover:text-sea-700" title={`${nextSt.firstName} ${nextSt.lastName}`}>Další <ChevronRight size={15} /></Link>
+            ) : <span className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-ink-faint/50">Další <ChevronRight size={15} /></span>}
+          </div>
+        )}
+      </div>
       <PageHeader
         title={`${st.firstName} ${st.lastName}`}
         subtitle={`Třída ${cls?.name} · ${subj?.name ?? '–'} · ${as.length} hodnocení. Žáka porovnáváme s jeho vlastním dřívějším výkonem.`}
@@ -269,7 +287,7 @@ export default function StudentDetail() {
                 )
               })}
             </ul>
-            <p className="mt-2 text-xs text-ink-faint">Nehodnocené dovednosti se nezobrazují ani nezapočítávají.</p>
+            <p className="mt-2 text-sm text-ink-faint">Nehodnocené dovednosti se nezobrazují ani nezapočítávají.</p>
           </Card>
 
           <Card title="Porovnání výsledků v čase" className="min-w-0 xl:col-span-2"><CompareSkills as={as} crits={criteria} /></Card>

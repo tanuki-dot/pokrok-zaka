@@ -1,7 +1,22 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { HelpCircle } from 'lucide-react'
 import { levelLabel } from '../lib/levels'
 
 export const cx = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(' ')
+
+/** #12: krátká nápověda u funkce – ikona „?" se slovním vysvětlením (hover i dotyk). */
+export function Help({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={cx('group relative inline-flex align-middle', className)}>
+      <button type="button" aria-label="Nápověda" className="grid h-5 w-5 place-items-center rounded-full text-ink-faint hover:text-sea-600 focus:text-sea-600 focus:outline-none">
+        <HelpCircle size={15} />
+      </button>
+      <span role="tooltip" className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 hidden w-56 max-w-[min(14rem,80vw)] -translate-x-1/2 rounded-xl border border-line bg-surface px-3 py-2 text-left text-xs font-normal leading-relaxed text-ink-soft shadow-lg group-hover:block group-focus-within:block">
+        {children}
+      </span>
+    </span>
+  )
+}
 
 export function Card({ children, className, title, action }: { children: ReactNode; className?: string; title?: ReactNode; action?: ReactNode }) {
   return (

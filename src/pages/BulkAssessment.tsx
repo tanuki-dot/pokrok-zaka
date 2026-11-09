@@ -9,7 +9,7 @@ import { rangeFor, periodLabel } from '../lib/periods'
 import { fmtShort, today } from '../lib/dates'
 import { LEVELS } from '../lib/levels'
 import type { AssessmentGoal, Level, PeriodType } from '../lib/types'
-import { Button, Card, cx, Empty, PageHeader, Select } from '../components/ui'
+import { Button, Card, cx, Empty, Help, PageHeader, Select } from '../components/ui'
 
 const gid = () => 'ag' + Math.random().toString(36).slice(2, 10)
 
@@ -111,7 +111,7 @@ export default function BulkAssessment() {
       />
 
       <div className="flex flex-col gap-4">
-        <Card title="Období a dovednosti">
+        <Card title={<span className="inline-flex items-center gap-1.5">Období a dovednosti <Help>Vyberte období a dovednosti, které chcete ohodnotit u celé třídy. „Převzít z minulého hodnocení“ předvyplní tabulku podle posledního hodnocení každého žáka.</Help></span>}>
           <div className="flex flex-wrap items-end gap-4">
             <label className="flex flex-col gap-1 text-xs font-semibold text-ink-faint">
               Období

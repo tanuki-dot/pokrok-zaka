@@ -5,7 +5,7 @@ import { useCtx } from '../lib/useCtx'
 import { criteriaFor } from '../lib/store'
 import { criterionSeries, studentAssessments } from '../lib/analysis'
 import { inRange, periodFor, today } from '../lib/dates'
-import { Button, Card, Empty, Input, LevelBadge, PageHeader, Select, Tabs } from '../components/ui'
+import { Button, Card, Empty, Help, Input, LevelBadge, PageHeader, Select, Tabs } from '../components/ui'
 
 type P = 'tyden' | 'mesic' | 'pololeti' | 'vse'
 
@@ -80,7 +80,7 @@ export default function ClassOverview() {
               ))}
             </ul>
           </Card>
-          <Card title={<span className="inline-flex items-center gap-2"><Lightbulb size={17} className="text-sea-600" /> Na co se při výuce zaměřit</span>} className="min-w-0">
+          <Card title={<span className="inline-flex items-center gap-2"><Lightbulb size={17} className="text-sea-600" /> Na co se při výuce zaměřit <Help>Aplikace upozorní na dovednosti, které třída zvládá slabě (průměr 3 a horší), a na ty, kde úroveň klesla u více žáků.</Help></span>} className="min-w-0">
             {focusUnique.length === 0 ? (
               <p className="text-sm text-ink-faint">Třída zvládá vybrané dovednosti dobře, žádná výrazná slabina.</p>
             ) : (
@@ -158,7 +158,7 @@ export default function ClassOverview() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-xs text-ink-faint">Úroveň 1 = výborně … 5 = zatím nezvládá, – = nehodnoceno · ↑ zlepšení · ↓ potřebuje víc podpory · Cíle: splněné / stanovené v období. Přehled slouží k plánování podpory, ne k pořadí žáků.</p>
+        <p className="mt-3 text-sm text-ink-faint">Úroveň 1 = výborně … 5 = zatím nezvládá, – = nehodnoceno · ↑ zlepšení · ↓ potřebuje víc podpory · Cíle: splněné / stanovené v období. Přehled slouží k plánování podpory, ne k pořadí žáků.</p>
       </Card>
     </>
   )
