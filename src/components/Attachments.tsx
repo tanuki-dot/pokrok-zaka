@@ -1,9 +1,34 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Download, ExternalLink, Paperclip, Trash2, Upload } from 'lucide-react'
 import { addAttachment, removeAttachment } from '../lib/store'
-import { ACCEPT, downloadFile, fileKind, fmtSize, MAX_FILE_MB, openFile } from '../lib/files'
+import { ACCEPT, downloadFile, fileKind, fmtSize, getFile, MAX_FILE_MB, openFile } from '../lib/files'
 import type { Attachment } from '../lib/types'
 import { cx, Pill } from './ui'
+
+/** Náhled obrázkové přílohy (#8). U neobrázků spona. */
+export function Thumb({ file, size = 44 }: { file: Attachment; size?: number }) {
+  const [url, setUrl] = useState('')
+  const isImage = file.type.startsWith('image/')
+  useEffect(() => {
+    if (!isImage) return
+    let u = ''
+    let alive = true
+    getFile(file).then((b) => {
+      if (!b || !alive) return
+      u = URL.createObjectURL(b)
+      setUrl(u)
+    }).catch(() => {})
+    return () => { alive = false; if (u) URL.revokeObjectURL(u) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file.id])
+  if (isImage && url)
+    return <img src={url} alt={file.name} className="shrink-0 rounded-lg border border-line object-cover" style={{ width: size, height: size }} />
+  return (
+    <span className="grid shrink-0 place-items-center rounded-lg border border-line bg-canvas text-ink-faint" style={{ width: size, height: size }}>
+      <Paperclip size={size > 36 ? 18 : 16} />
+    </span>
+  )
+}
 
 /** Nahrání a seznam příloh jednoho hodnocení. owner určuje, kdo přílohu přidává. */
 export function AttachmentUpload({ assessmentId, owner, label, onUpload }: {
@@ -88,13 +113,14 @@ export function AttachmentList({
                 aria-label={`Zahrnout ${f.name} do zprávy`}
               />
             )}
-            <Paperclip size={16} className="shrink-0 text-ink-faint" />
+            <Thumb file={f} size={40} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold">{f.name}</div>
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-faint">
                 <Pill tone={f.owner === 'zak' ? 'brand' : 'sea'}>{f.owner === 'zak' ? 'žák' : 'učitel'}</Pill>
                 {fileKind(f.type, f.name)} · {fmtSize(f.size)} · {new Date(f.addedAt).toLocaleDateString('cs-CZ')}
               </div>
+              {f.note && <div className="mt-0.5 text-xs text-ink-soft">„{f.note}“</div>}
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button className="rounded-lg p-2 text-ink-soft hover:bg-sea-50 hover:text-sea-700" aria-label={`Otevřít ${f.name}`} onClick={() => openFile(f).catch((e) => setErr(e.message))}>

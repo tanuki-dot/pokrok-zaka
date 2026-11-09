@@ -205,6 +205,10 @@ export interface Attachment {
   type: string
   size: number
   addedAt: string
+  /** Krátký komentář učitele k práci (portfolio). */
+  note?: string
+  /** Propojení práce s konkrétními vzdělávacími cíli hodnocení (id cílů). */
+  goalIds?: string[]
 }
 
 /** Druh dokumentu: podpůrná opatření žáka (plpp…spc), školní ŠVP/plán (svp, plan), jiné. */

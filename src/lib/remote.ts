@@ -54,7 +54,7 @@ export const TABLES: Record<Key, TableSpec> = {
     fields: f('id', 'studentId', 'subjectId', 'date', 'periodType', 'periodFrom', 'periodTo', 'units', 'topic', 'goals', 'skills', 'scores', 'skillNotes', 'teacherQ', 'feedback', 'swot', 'report', 'nextGoal', 'selfForm', 'status', 'selfCode', 'selfCodeExpires', 'selfCodeCorrection', 'scoresOriginal', 'createdAt', 'updatedAt'),
   },
   selfAssessments: { table: 'self_assessments', fields: f('id', 'assessmentId', 'answers', 'form', 'submittedAt', 'corrections') },
-  attachments: { table: 'attachments', fields: f('id', 'assessmentId', 'owner', 'name', 'type', 'size', 'addedAt') },
+  attachments: { table: 'attachments', fields: f('id', 'assessmentId', 'owner', 'name', 'type', 'size', 'addedAt', 'note', 'goalIds') },
   documents: { table: 'documents', fields: f('id', 'scope', 'studentId', 'schoolId', 'subjectId', 'kind', 'name', 'mime', 'size', 'addedAt') },
   goals: { table: 'goals', fields: f('id', 'studentId', 'subjectId', 'assessmentId', 'text', 'setOn', 'due', 'status') },
   summaries: {

@@ -400,6 +400,11 @@ export async function addAttachment(assessmentId: string, owner: Attachment['own
   return att
 }
 
+/** #8 Portfolio: komentář učitele k práci a propojení s vzdělávacími cíli. */
+export function setAttachmentMeta(id: string, patch: { note?: string; goalIds?: string[] }) {
+  commit({ ...db, attachments: db.attachments.map((x) => (x.id === id ? { ...x, ...patch } : x)) })
+}
+
 export async function removeAttachment(id: string) {
   const att = db.attachments.find((x) => x.id === id)
   if (att) await deleteFile(att).catch(() => {})
