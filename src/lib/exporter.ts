@@ -11,7 +11,7 @@ export function buildSheets(db: DB, subjectId: string | 'vse') {
   const subjects = subjectId === 'vse' ? db.subjects : db.subjects.filter((s) => s.id === subjectId)
   const sIds = new Set(subjects.map((s) => s.id))
   const as = db.assessments.filter((a) => sIds.has(a.subjectId)).sort((a, b) => a.date.localeCompare(b.date))
-  const crit = db.criteria.filter((c) => c.subjectId === null || sIds.has(c.subjectId))
+  const crit = db.criteria.filter((c) => c.subjectId == null || sIds.has(c.subjectId))
   const st = (id: string) => db.students.find((s) => s.id === id)
   const cl = (id?: string) => db.classes.find((c) => c.id === id)?.name ?? ''
   const sub = (id: string) => db.subjects.find((s) => s.id === id)?.name ?? ''

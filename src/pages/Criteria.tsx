@@ -18,7 +18,7 @@ export default function CriteriaPage() {
   const [unitName, setUnitName] = useState('')
   if (!subj) return <Empty title="Vyberte předmět" />
 
-  const defaults = db.criteria.filter((c) => c.subjectId === null && !c.archived)
+  const defaults = db.criteria.filter((c) => c.subjectId == null && !c.archived)
   const custom = db.criteria.filter((c) => c.subjectId === subj.id && !c.archived)
   const archived = db.criteria.filter((c) => c.archived)
   const cls = db.classes.find((c) => c.id === subj.classId)
