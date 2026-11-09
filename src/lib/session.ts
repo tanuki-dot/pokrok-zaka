@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { flush, loadAll, loadProfile, remoteEnabled, sb, type Profile } from './remote'
 import { clearLoaded, getDB, setLoaded } from './store'
+import { noteActivity } from './autologout'
 
 /*
  * Přihlášení učitele (Supabase Auth) a načtení jeho dat.
@@ -124,6 +125,7 @@ export async function signIn(email: string, password: string) {
   const { error } = await sb!.auth.signInWithPassword({ email: email.trim(), password })
   if (error) throw new Error(czech(error))
   rememberEmail(email)
+  noteActivity() // čerstvé přihlášení = aktivita teď, ať hlídač nečinnosti hned neodhlásí
 }
 
 export async function signUp(email: string, password: string, fullName: string) {

@@ -56,6 +56,10 @@ function persistActivity(ts: number) {
     /* ignore */
   }
 }
+/** Zaznamená aktivitu „teď" – volá se po přihlášení, aby hlídač hned neodhlásil. */
+export function noteActivity() {
+  persistActivity(Date.now())
+}
 function persistedActivity(): number {
   try {
     return Number(localStorage.getItem(ACT_KEY)) || 0
