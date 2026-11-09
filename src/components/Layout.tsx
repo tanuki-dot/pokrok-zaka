@@ -11,6 +11,7 @@ import { setSelection, switchSchoolType } from '../lib/selection'
 import { useCtx } from '../lib/useCtx'
 import { cx, Select } from './ui'
 import { ThemeToggle } from './ThemeToggle'
+import { LOGOUT_OPTIONS, setIdleMinutes, useAutoLogout, useIdleMinutes } from '../lib/autologout'
 import { openPrivacy } from '../lib/privacy'
 
 const TEACHER_NAV = [
@@ -35,6 +36,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const role = db.settings.role
   const items = role === 'ucitel' ? TEACHER_NAV : MGMT_NAV
   const [confirmReset, setConfirmReset] = useState(false)
+  const idleMin = useIdleMinutes()
+  // V serverovém režimu odhlásí učitele i vedení po nastavené době nečinnosti.
+  useAutoLogout(remoteEnabled, signOut)
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Hlavní navigace">
@@ -78,6 +82,16 @@ export function Layout({ children }: { children: ReactNode }) {
           Vzhled
           <ThemeToggle />
         </div>
+        {remoteEnabled && (
+          <label className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">
+            Automatické odhlášení
+            <Select id="auto-odhlaseni" value={idleMin} onChange={(e) => setIdleMinutes(Number(e.target.value))}>
+              {LOGOUT_OPTIONS.map((m) => (
+                <option key={m} value={m}>po {m} min nečinnosti</option>
+              ))}
+            </Select>
+          </label>
+        )}
 {!remoteEnabled && (
           <>
         <label className="flex flex-col gap-1 px-1 text-xs font-semibold text-ink-faint">

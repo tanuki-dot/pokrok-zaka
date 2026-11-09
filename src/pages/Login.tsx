@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { BookOpenCheck, Loader2 } from 'lucide-react'
-import { sendReset, setNewPassword, signIn, signUp } from '../lib/session'
+import { rememberedEmail, sendReset, setNewPassword, signIn, signUp } from '../lib/session'
+import { wasIdleLogout } from '../lib/autologout'
 import { openPrivacy } from '../lib/privacy'
 import { Button, Field, Input, cx } from '../components/ui'
 
@@ -10,7 +11,8 @@ type Mode = 'in' | 'up' | 'reset' | 'newpass'
 /** Přihlášení učitele (e-mail a heslo). Žák se nepřihlašuje – sebehodnocení otevírá kódem. */
 export default function Login({ recovery = false }: { recovery?: boolean }) {
   const [mode, setMode] = useState<Mode>(recovery ? 'newpass' : 'in')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(rememberedEmail)
+  const [idleOut] = useState(wasIdleLogout)
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,6 +59,11 @@ export default function Login({ recovery = false }: { recovery?: boolean }) {
         <form onSubmit={submit} className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-7" noValidate>
           <h1 className="text-[22px] font-bold">{title}</h1>
           {mode === 'up' && <p className="mt-1 text-sm text-ink-soft">Zatím jen pro vyzkoušení s fiktivními žáky – skutečné údaje žáků sem nezadávejte.</p>}
+          {idleOut && mode === 'in' && (
+            <p role="status" className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">
+              Byli jste odhlášeni kvůli nečinnosti. Pro pokračování zadejte heslo.
+            </p>
+          )}
           <div className="mt-5 grid gap-4">
             {mode === 'up' && (
               <Field label="Jméno a příjmení">

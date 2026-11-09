@@ -90,6 +90,24 @@ if (remoteEnabled && sb) {
 
 const redirect = () => `${location.origin}${location.pathname}`
 
+// Pamatuje se jen e-mail (pro předvyplnění). Heslo se neukládá nikdy –
+// vyplní ho uživatel ručně nebo správce hesel prohlížeče.
+const EMAIL_KEY = 'pokrok-zaka:email'
+export function rememberedEmail(): string {
+  try {
+    return localStorage.getItem(EMAIL_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+function rememberEmail(email: string) {
+  try {
+    localStorage.setItem(EMAIL_KEY, email.trim())
+  } catch {
+    /* jen pohodlí */
+  }
+}
+
 /** České znění častých chyb přihlášení. */
 function czech(e: { message: string; name?: string; status?: number }) {
   const m = e.message
@@ -105,6 +123,7 @@ function czech(e: { message: string; name?: string; status?: number }) {
 export async function signIn(email: string, password: string) {
   const { error } = await sb!.auth.signInWithPassword({ email: email.trim(), password })
   if (error) throw new Error(czech(error))
+  rememberEmail(email)
 }
 
 export async function signUp(email: string, password: string, fullName: string) {
@@ -125,6 +144,7 @@ export async function setNewPassword(password: string) {
 }
 
 export async function signOut() {
+  if (state.status === 'in') rememberEmail(state.profile.email)
   await flush()
   await sb!.auth.signOut()
 }
