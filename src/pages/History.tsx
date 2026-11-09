@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { History as HistoryIcon, Pencil, Search } from 'lucide-react'
+import { CopyPlus, History as HistoryIcon, Pencil, Search } from 'lucide-react'
 import { useDB } from '../lib/store'
 import { PERIOD_LABEL, periodLabel } from '../lib/periods'
 import { fmt } from '../lib/dates'
@@ -89,8 +89,11 @@ export default function History() {
                       <td className="py-2.5 pr-3">{periodLabel(a.periodType, a.periodFrom, a.periodTo)}</td>
                       <td className="tabular py-2.5 pr-3">{a.goals.length ? `${met}/${a.goals.length} splněno` : '–'}</td>
                       <td className="py-2.5 pr-3"><Pill tone={a.status === 'dokoncene' ? 'good' : 'warn'}>{a.status === 'dokoncene' ? 'dokončeno' : 'rozpracováno'}</Pill></td>
-                      <td className="py-2.5 text-right">
-                        <Link to={`/hodnoceni/${a.id}`} className="inline-flex items-center gap-1 font-semibold text-sea-600"><Pencil size={14} /> Otevřít</Link>
+                      <td className="py-2.5">
+                        <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                          <Link to={`/hodnoceni/nove?podle=${a.id}`} className="inline-flex items-center gap-1 font-semibold text-ink-soft hover:text-sea-600" title="Vytvořit nové hodnocení podle tohoto"><CopyPlus size={14} /> Nové podle</Link>
+                          <Link to={`/hodnoceni/${a.id}`} className="inline-flex items-center gap-1 font-semibold text-sea-600"><Pencil size={14} /> Otevřít</Link>
+                        </div>
                       </td>
                     </tr>
                   )

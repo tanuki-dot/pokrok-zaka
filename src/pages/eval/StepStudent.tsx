@@ -19,11 +19,15 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
   const db = useDB()
   const sel = useSelectionRaw()
   const [params] = useSearchParams()
-  const presetStudent = a ? db.students.find((s) => s.id === a.studentId) : db.students.find((s) => s.id === params.get('zak'))
+  // #6: „Nové hodnocení podle předchozího" – předvyplní předmět, období, celky, téma a cíle ze zdrojového hodnocení.
+  const source = !a ? db.assessments.find((x) => x.id === params.get('podle')) : undefined
+  const presetStudent = a
+    ? db.students.find((s) => s.id === a.studentId)
+    : db.students.find((s) => s.id === (source?.studentId ?? params.get('zak')))
 
   const [classId, setClassId] = useState(presetStudent?.classId ?? (db.classes.some((c) => c.id === sel.classId) ? sel.classId : db.classes[0]?.id ?? ''))
   const subjectsOf = (cid: string) => db.subjects.filter((p) => p.classId === cid)
-  const [subjectId, setSubjectId] = useState(a?.subjectId ?? (subjectsOf(classId).some((p) => p.id === sel.subjectId) ? sel.subjectId : subjectsOf(classId)[0]?.id ?? ''))
+  const [subjectId, setSubjectId] = useState(a?.subjectId ?? source?.subjectId ?? (subjectsOf(classId).some((p) => p.id === sel.subjectId) ? sel.subjectId : subjectsOf(classId)[0]?.id ?? ''))
   // „Nový žák“ (?novy=1) začíná prázdným formulářem, jinak první žák třídy.
   const [studentId, setStudentId] = useState<string>(
     presetStudent?.id ??
@@ -32,7 +36,7 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
   const [newFirst, setNewFirst] = useState('')
   const [newLast, setNewLast] = useState('')
   const [date, setDate] = useState(a?.date ?? today())
-  const [ptype, setPtype] = useState<PeriodType>(a?.periodType ?? 'hodina')
+  const [ptype, setPtype] = useState<PeriodType>(a?.periodType ?? source?.periodType ?? 'hodina')
   const [anchor, setAnchor] = useState(a?.periodFrom ?? today())
   const [month, setMonth] = useState(a ? new Date(a.periodFrom).getMonth() : new Date().getMonth())
   const [year, setYear] = useState(a ? new Date(a.periodFrom).getFullYear() : new Date().getFullYear())
@@ -40,9 +44,15 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
   const [schoolYear, setSchoolYear] = useState(a ? schoolYearOf(a.periodFrom) : schoolYearOf(today()))
   const [customFrom, setCustomFrom] = useState(a?.periodType === 'vlastni' ? a.periodFrom : today())
   const [customTo, setCustomTo] = useState(a?.periodType === 'vlastni' ? a.periodTo : today())
-  const [units, setUnits] = useState<string[]>(a?.units ?? [])
-  const [topic, setTopic] = useState(a?.topic ?? '')
-  const [goals, setGoals] = useState<AssessmentGoal[]>(a?.goals.length ? a.goals : [{ id: uid('c'), text: '', status: null }])
+  const [units, setUnits] = useState<string[]>(a?.units ?? source?.units ?? [])
+  const [topic, setTopic] = useState(a?.topic ?? source?.topic ?? '')
+  const [goals, setGoals] = useState<AssessmentGoal[]>(
+    a?.goals.length
+      ? a.goals
+      : source?.goals.length
+        ? source.goals.map((g) => ({ id: uid('c'), text: g.text, status: null }))
+        : [{ id: uid('c'), text: '', status: null }],
+  )
   const [newUnit, setNewUnit] = useState('')
   const [sugg, setSugg] = useState<{ items: string[]; note?: string; source: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -130,6 +140,11 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {source && (
+        <div className="rounded-2xl border border-sea-100 bg-sea-50 px-4 py-3 text-sm text-sea-700">
+          Předvyplněno podle předchozího hodnocení ({periodLabel(source.periodType, source.periodFrom, source.periodTo)}): předmět, celky, téma i cíle. Upravte období a cíle podle nového hodnocení.
+        </div>
+      )}
       <Card title="Základní údaje">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Třída *">

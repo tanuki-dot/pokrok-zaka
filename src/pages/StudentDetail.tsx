@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowLeft, ClipboardPen, FileText, Pencil, UserCheck } from 'lucide-react'
+import { ArrowLeft, ClipboardPen, CopyPlus, FileText, Pencil, UserCheck } from 'lucide-react'
 import { useCtx } from '../lib/useCtx'
 import { setSelection } from '../lib/selection'
 import { setGoalStatus, setSchoolType } from '../lib/store'
@@ -72,6 +72,82 @@ function GoalsChart({ as }: { as: Assessment[] }) {
           <Bar dataKey="Nesplněno" stackId="g" fill="var(--color-lv5)" radius={[5, 5, 0, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  )
+}
+
+/** #6: Porovnání dvou hodnocení z různých období vedle sebe (dovednost po dovednosti). */
+function CompareTwo({ as, crits }: { as: Assessment[]; crits: { id: string; name: string }[] }) {
+  const scored = as.filter((a) => Object.keys(a.scores).length)
+  const [aId, setAId] = useState(() => scored[0]?.id ?? '')
+  const [bId, setBId] = useState(() => scored.at(-1)?.id ?? '')
+  if (scored.length < 2) return <p className="text-sm text-ink-faint">Pro porovnání jsou potřeba aspoň dvě ohodnocená hodnocení.</p>
+  const A = scored.find((x) => x.id === aId) ?? scored[0]
+  const B = scored.find((x) => x.id === bId) ?? scored.at(-1)!
+  const label = (a: Assessment) => `${fmt(a.date)} · ${periodLabel(a.periodType, a.periodFrom, a.periodTo)}`
+  const rows = crits.filter((c) => A.scores[c.id] != null || B.scores[c.id] != null)
+  let better = 0, worse = 0, same = 0
+  for (const c of rows) {
+    const x = A.scores[c.id], y = B.scores[c.id]
+    if (x == null || y == null) continue
+    if (y < x) better++
+    else if (y > x) worse++
+    else same++
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-xs font-semibold text-ink-faint">Hodnocení A
+          <select value={aId} onChange={(e) => setAId(e.target.value)} className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-normal text-ink focus:border-sea-500 focus:outline-none">
+            {scored.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-ink-faint">Hodnocení B
+          <select value={bId} onChange={(e) => setBId(e.target.value)} className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-normal text-ink focus:border-sea-500 focus:outline-none">
+            {scored.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+          </select>
+        </label>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-ink-faint">Vybraná hodnocení nemají společné hodnocené dovednosti.</p>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-ink-faint">
+                  <th className="py-2 pr-3 font-semibold">Dovednost</th>
+                  <th className="px-2 py-2 text-center font-semibold">A</th>
+                  <th className="px-2 py-2 text-center font-semibold">B</th>
+                  <th className="px-2 py-2 text-center font-semibold">Změna</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((c) => {
+                  const x = A.scores[c.id], y = B.scores[c.id]
+                  const d = x != null && y != null ? x - y : null
+                  return (
+                    <tr key={c.id}>
+                      <td className="py-2 pr-3 font-semibold">{c.name}</td>
+                      <td className="px-2 py-2 text-center"><LevelBadge level={x} size="sm" /></td>
+                      <td className="px-2 py-2 text-center"><LevelBadge level={y} size="sm" /></td>
+                      <td className="px-2 py-2 text-center">
+                        {d == null ? <span className="text-ink-faint">–</span>
+                          : d > 0 ? <span className="font-bold text-good">↑ zlepšení</span>
+                          : d < 0 ? <span className="font-bold text-bad">↓ potřebuje podporu</span>
+                          : <span className="text-ink-faint">beze změny</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm text-ink-soft">
+            Mezi hodnoceními se žák zlepšil v <strong className="text-good">{better}</strong>, zhoršil ve <strong className="text-bad">{worse}</strong> a zůstal stejný v <strong>{same}</strong> {rows.length === 1 ? 'dovednosti' : 'dovednostech'}. Škála 1 = výborně … 5 = zatím nezvládá.
+          </p>
+        </>
+      )}
     </div>
   )
 }
@@ -197,6 +273,8 @@ export default function StudentDetail() {
 
           <Card title="Porovnání výsledků v čase" className="min-w-0 xl:col-span-2"><CompareSkills as={as} crits={criteria} /></Card>
 
+          <Card title="Porovnání dvou hodnocení" className="min-w-0 xl:col-span-2"><CompareTwo as={as} crits={criteria} /></Card>
+
           <Card title="Vývoj samostatnosti" className="min-w-0">
             {indep.length ? <ProgressChart points={indep} height={200} color="var(--color-orange)" /> : <p className="text-sm text-ink-faint">Samostatnost zatím nebyla hodnocena.</p>}
           </Card>
@@ -261,7 +339,10 @@ export default function StudentDetail() {
                       {a.periodType !== 'hodina' && <Pill tone="sea">{periodLabel(a.periodType, a.periodFrom, a.periodTo)}</Pill>}
                       {a.status === 'rozpracovane' && <Pill tone="warn">rozpracováno</Pill>}
                       {self && <Pill tone="brand"><UserCheck size={12} /> sebehodnocení</Pill>}
-                      <Link to={`/hodnoceni/${a.id}`} className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-sea-600"><Pencil size={14} /> Otevřít a opravit</Link>
+                      <span className="ml-auto flex items-center gap-3">
+                        <Link to={`/hodnoceni/nove?podle=${a.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-ink-soft hover:text-sea-600" title="Vytvořit nové hodnocení podle tohoto"><CopyPlus size={14} /> Nové podle</Link>
+                        <Link to={`/hodnoceni/${a.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-sea-600"><Pencil size={14} /> Otevřít a opravit</Link>
+                      </span>
                     </div>
                     {a.goals.length > 0 && (
                       <ul className="mt-1 text-sm text-ink-soft">

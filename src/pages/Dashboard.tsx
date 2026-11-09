@@ -4,9 +4,15 @@ import { ArrowRight, ClipboardCheck, ClipboardPen, FileClock, HeartHandshake, Hi
 import { useCtx } from '../lib/useCtx'
 import { fmt, fmtShort, relative } from '../lib/dates'
 import { periodLabel } from '../lib/periods'
-import { supportReasons } from '../lib/analysis'
+import { recommendations, studentAssessments, supportReasons } from '../lib/analysis'
 import { fullName } from '../lib/util'
 import { Button, Card, PageHeader, Pill } from '../components/ui'
+
+const LESSON_GOAL = [
+  { key: 'splneno', label: 'Splněno', tone: 'good', color: 'var(--color-lv1)' },
+  { key: 'castecne', label: 'Částečně', tone: 'warn', color: 'var(--color-lv3)' },
+  { key: 'nesplneno', label: 'Nesplněno', tone: 'bad', color: 'var(--color-lv5)' },
+] as const
 
 /*
  * Úvodní stránka aplikace (pokrokveskole.docx, snímek 1): přehled, postup a hlavní tlačítka.
@@ -42,12 +48,27 @@ export default function Dashboard() {
   const lastSubj = last && db.subjects.find((s) => s.id === last.subjectId)
   const drafts = all.filter((a) => a.status === 'rozpracovane')
   const evaluated = new Set(db.assessments.filter((a) => Object.keys(a.scores).length).map((a) => a.studentId)).size
+  // #5: kolik žáků vybrané třídy a předmětu ještě nemá žádné ohodnocení.
+  const subjAssessed = new Set(db.assessments.filter((a) => a.subjectId === subj?.id && Object.keys(a.scores).length).map((a) => a.studentId))
+  const notAssessed = students.filter((st) => !subjAssessed.has(st.id))
+
+  // #5: přehled splnění vzdělávacích cílů (splněno / částečně / nesplněno) ve vybraném předmětu.
+  const lessonGoals = { splneno: 0, castecne: 0, nesplneno: 0 }
+  for (const a of db.assessments)
+    if (a.subjectId === subj?.id) for (const g of a.goals) if (g.status) lessonGoals[g.status]++
+  const lessonTotal = lessonGoals.splneno + lessonGoals.castecne + lessonGoals.nesplneno
 
   const goals = db.goals.filter((g) => g.subjectId === subj?.id)
   const reached = goals.filter((g) => g.status === 'splneny').sort((a, b) => b.setOn.localeCompare(a.setOn))
   const unmet = goals.filter((g) => g.status === 'nesplneny').sort((a, b) => b.setOn.localeCompare(a.setOn))
   const support = students
-    .map((st) => ({ st, reasons: subj ? supportReasons(db, st.id, subj.id) : [] }))
+    .map((st) => {
+      const reasons = subj ? supportReasons(db, st.id, subj.id) : []
+      const last = subj ? studentAssessments(db, st.id, subj.id).at(-1) : undefined
+      const self = last ? db.selfAssessments.find((s) => s.assessmentId === last.id) : undefined
+      const rec = reasons.length && last ? recommendations(db, last, self)[0] : undefined
+      return { st, reasons, rec }
+    })
     .filter((x) => x.reasons.length)
     .sort((a, b) => b.reasons.reduce((n, r) => n + r.severity, 0) - a.reasons.reduce((n, r) => n + r.severity, 0))
   const sName = (id: string) => {
@@ -72,7 +93,7 @@ export default function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat icon={<ClipboardCheck size={22} />} value={db.assessments.length} label="Vytvořená hodnocení" note={`${db.assessments.length - drafts.length} dokončených`} />
-        <Stat icon={<Users size={22} />} value={evaluated} label="Hodnocení žáci" note={`z ${db.students.length} v evidenci`} />
+        <Stat icon={<Users size={22} />} value={evaluated} label="Hodnocení žáci" note={`z ${db.students.length} v evidenci${notAssessed.length ? ` · ${notAssessed.length} bez hodnocení v ${subj?.name ?? 'předmětu'}` : ''}`} />
         <Stat
           icon={<FileClock size={22} />}
           value={last ? fmtShort(last.date) : '–'}
@@ -126,12 +147,15 @@ export default function Dashboard() {
           <p className="text-sm text-ink-faint">Podle hodnocení teď nikdo nepotřebuje zvláštní podporu.</p>
         ) : (
           <ul className="divide-y divide-line">
-            {support.slice(0, 6).map(({ st, reasons }) => (
-              <li key={st.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
-                <Link to={`/zaci/${st.id}`} className="min-w-[150px] font-semibold hover:text-sea-600">{fullName(st)}</Link>
-                <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-                  {reasons.map((r) => <Pill key={r.text} tone={r.severity === 2 ? 'bad' : 'warn'} className="whitespace-normal">{r.text}</Pill>)}
-                </span>
+            {support.slice(0, 6).map(({ st, reasons, rec }) => (
+              <li key={st.id} className="flex flex-col gap-1.5 py-2.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Link to={`/zaci/${st.id}`} className="min-w-[150px] font-semibold hover:text-sea-600">{fullName(st)}</Link>
+                  <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                    {reasons.map((r) => <Pill key={r.text} tone={r.severity === 2 ? 'bad' : 'warn'} className="whitespace-normal">{r.text}</Pill>)}
+                  </span>
+                </div>
+                {rec && <p className="text-sm text-ink-soft"><span className="font-semibold text-sea-700">Doporučení:</span> {rec}</p>}
               </li>
             ))}
           </ul>
@@ -140,7 +164,29 @@ export default function Dashboard() {
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <Card title="Přehled cílů" action={<span className="text-xs text-ink-faint">{subj?.name}</span>} className="min-w-0">
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="mb-4">
+            <h3 className="mb-2 text-sm font-bold">Splnění vzdělávacích cílů v hodnoceních</h3>
+            {lessonTotal === 0 ? (
+              <p className="text-sm text-ink-faint">Zatím nejsou v hodnoceních označená splnění cílů.</p>
+            ) : (
+              <>
+                <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`Splněno ${lessonGoals.splneno}, částečně ${lessonGoals.castecne}, nesplněno ${lessonGoals.nesplneno}`}>
+                  {LESSON_GOAL.map((g) => lessonGoals[g.key] > 0 && (
+                    <span key={g.key} style={{ width: `${(lessonGoals[g.key] / lessonTotal) * 100}%`, background: g.color }} />
+                  ))}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {LESSON_GOAL.map((g) => (
+                    <span key={g.key} className="inline-flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: g.color }} />
+                      {g.label} <strong className="tabular">{lessonGoals[g.key]}</strong>
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="grid gap-5 border-t border-line pt-4 sm:grid-cols-2">
             {([['Dosažené cíle', reached, 'good'], ['Nesplněné cíle', unmet, 'bad']] as const).map(([title, list, tone]) => (
               <div key={title} className="min-w-0">
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">{title} <Pill tone={tone}>{list.length}</Pill></h3>
