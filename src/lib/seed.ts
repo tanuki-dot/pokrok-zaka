@@ -31,7 +31,7 @@ const PHRASES: Omit<Phrase, 'id'>[] = [
   { kind: 'good', text: 'Umí vysvětlit, proč postup funguje.' },
   { kind: 'good', text: 'Ochotně pomáhá ve dvojici.' },
   { kind: 'todo', text: 'Potřebuje pomoc při zahájení samostatné práce.' },
-  { kind: 'todo', text: 'Chybuje v zápisu – vyplatí se kontrolovat výsledek.' },
+  { kind: 'todo', text: 'Chybuje v zápisu, vyplatí se kontrolovat výsledek.' },
   { kind: 'todo', text: 'Zatím nedokončí úlohu v daném čase.' },
   { kind: 'next', text: 'Samostatně vyřešit jednu podobnou úlohu a zkontrolovat výsledek.' },
   { kind: 'next', text: 'Vysvětlit postup spolužákovi vlastními slovy.' },
@@ -86,7 +86,7 @@ const INFO_TOPICS: [string, Fb][] = [
   ['Řazení a filtrování dat', {
     goal: 'Žák seřadí a vyfiltruje data podle zadání.',
     good: ['Správně seřazená data podle více sloupců.', 'Samostatně použitý filtr.'],
-    todo: ['Při řazení rozdělí řádky – potřebuje kontrolu.', 'Potřebuje pomoc s vlastním filtrem.'],
+    todo: ['Při řazení rozdělí řádky, potřebuje kontrolu.', 'Potřebuje pomoc s vlastním filtrem.'],
     next: ['Seřadit seznam podle dvou kritérií a ověřit výsledek.', 'Vyfiltrovat data podle podmínky bez nápovědy.'],
   }],
   ['Práce v Excelu – opakování', {
@@ -107,7 +107,7 @@ const MATH_TOPICS: [string, Fb][] = [
   ['Sčítání a odčítání zlomků', {
     goal: 'Žák sčítá a odčítá zlomky s různým jmenovatelem.',
     good: ['Správně nalezený společný jmenovatel.', 'Výsledky zkrácené na základní tvar.'],
-    todo: ['Sčítá i jmenovatele – potřebuje vrátit k postupu.', 'Potřebuje pomoc s nejmenším společným násobkem.'],
+    todo: ['Sčítá i jmenovatele, potřebuje vrátit k postupu.', 'Potřebuje pomoc s nejmenším společným násobkem.'],
     next: ['Vyřešit tři příklady se zlomky a výsledek ověřit.', 'Procvičit hledání společného jmenovatele.'],
   }],
   ['Násobení a dělení zlomků', {

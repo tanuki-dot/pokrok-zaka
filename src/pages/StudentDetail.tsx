@@ -101,7 +101,7 @@ function TeacherVsSelf({ db, as }: { db: DB; as: Assessment[] }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-xs text-ink-faint">Levá osa: hodnocení učitele (1 = výborně). Pravá osa: vlastní pohled žáka ze sebehodnocení – zobrazený zvlášť, nejde o objektivní číselné hodnocení.</p>
+      <p className="mt-1 text-xs text-ink-faint">Levá osa: hodnocení učitele (1 = výborně). Pravá osa: vlastní pohled žáka ze sebehodnocení, zobrazený zvlášť, nejde o objektivní číselné hodnocení.</p>
     </>
   )
 }

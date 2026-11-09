@@ -32,7 +32,7 @@ export function SelfHistory({ db, assessments, className }: { db: DB; assessment
       action={<Tabs<P> value={period} onChange={setPeriod} options={[{ value: 'mesic', label: 'Měsíc' }, { value: 'pololeti', label: 'Pololetí' }, { value: 'vse', label: 'Vše' }]} />}
     >
       <p className="mb-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">
-        Jde o subjektivní sebehodnocení žáka – ukazuje, jak své učení vnímá, ne jak ho hodnotí učitel.
+        Jde o subjektivní sebehodnocení žáka, ukazuje, jak své učení vnímá, ne jak ho hodnotí učitel.
       </p>
       {rows.length === 0 ? (
         <p className="text-sm text-ink-faint">V tomto období žák sebehodnocení nevyplnil.</p>

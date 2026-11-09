@@ -232,7 +232,7 @@ function ServerBox() {
     <div className="flex flex-col gap-2 rounded-xl bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-700">
       <div>
         <strong className="block text-[13px]">Testovací provoz</strong>
-        Jen fiktivní žáci – skutečné údaje zatím nezadávejte.
+        Jen fiktivní žáci, skutečné údaje zatím nezadávejte.
       </div>
       <div className="truncate font-semibold" title={email}>{email}</div>
       <div role="status" className={cx('flex items-center gap-1.5 font-semibold', sync.status === 'error' && 'text-bad')}>

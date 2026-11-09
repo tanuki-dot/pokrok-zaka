@@ -28,7 +28,7 @@ export default function StepSelf({ a, setDirty }: StepProps) {
     <div className="flex flex-col gap-4">
       <Card title="Přístup pro žáka" action={<Pill tone="sea">{periodLabel(asm.periodType, asm.periodFrom, asm.periodTo)}</Pill>}>
         <p className="mb-4 text-sm text-ink-soft">
-          Žák vyplní dotazník na mobilu, tabletu nebo počítači přes QR kód nebo odkaz. Uvidí jen své jméno, třídu, předmět, období a vzdělávací cíle – žádná jiná hodnocení. Odpovídá jen na otázky pro hodnocené období.
+          Žák vyplní dotazník na mobilu, tabletu nebo počítači přes QR kód nebo odkaz. Uvidí jen své jméno, třídu, předmět, období a vzdělávací cíle, žádná jiná hodnocení. Odpovídá jen na otázky pro hodnocené období.
         </p>
         {self ? (
           <div className="flex flex-col gap-3">
@@ -77,7 +77,7 @@ export default function StepSelf({ a, setDirty }: StepProps) {
         ) : (
           <FormPreview form={form} />
         )}
-        {self && editing && <p className="mt-3 text-xs text-ink-faint">Žák už odpověděl – jeho odpovědi zůstávají uložené s původním zněním.</p>}
+        {self && editing && <p className="mt-3 text-xs text-ink-faint">Žák už odpověděl, jeho odpovědi zůstávají uložené s původním zněním.</p>}
       </Card>
     </div>
   )
@@ -201,7 +201,7 @@ function SelfLink({ a }: { a: Assessment }) {
             <Button variant="ghost" onClick={() => void refresh()}><RefreshCw size={14} /> Načíst odpovědi žáka</Button>
           </div>
         ) : (
-          <p className="text-xs text-ink-faint">V testovacím provozu se odpovědi ukládají v tomto prohlížeči – otevřete odkaz v nové kartě.</p>
+          <p className="text-xs text-ink-faint">V testovacím provozu se odpovědi ukládají v tomto prohlížeči, otevřete odkaz v nové kartě.</p>
         )}
       </div>
     </div>

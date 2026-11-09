@@ -274,7 +274,7 @@ function SelfForm({ code, view, header, onFile, onDone }: {
     try {
       const ok = remoteEnabled ? await submitSelf(code, answers, form) : submitSelfAssessment(code, answers, form)
       if (ok) onDone()
-      else setSendErr('Odpovědi se nepodařilo uložit – odkaz už možná neplatí. Požádej učitele o nový.')
+      else setSendErr('Odpovědi se nepodařilo uložit, odkaz už možná neplatí. Požádej učitele o nový.')
     } catch {
       setSendErr('Nepodařilo se spojit se serverem. Zkus to prosím znovu.')
     } finally {
@@ -392,7 +392,7 @@ function SelfForm({ code, view, header, onFile, onDone }: {
           <button type="submit" disabled={busy} className="min-h-13 w-full rounded-2xl bg-brand-500 px-6 py-3.5 text-base font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
             {busy ? 'Ukládám…' : view.correction ? 'Uložit opravu' : 'Uložit sebehodnocení'}
           </button>
-          <p className="text-center text-xs text-ink-faint">Odpovědi vidí jen tvůj učitel. Nejde o známku – slouží k tomu, abys věděl/a, jak dál.</p>
+          <p className="text-center text-xs text-ink-faint">Odpovědi vidí jen tvůj učitel. Nejde o známku, slouží k tomu, abys věděl/a, jak dál.</p>
         </form>
       </div>
     </div>

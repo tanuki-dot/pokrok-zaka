@@ -263,7 +263,7 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
         <Field label="Téma výuky (vlastní zadání)" className="mt-4">
           <Input id="u-tema" value={topic} placeholder="Např. Funkce PRŮMĚR v praxi" onChange={(e) => { setTopic(e.target.value); touch() }} />
         </Field>
-        <p className="mt-2 text-xs text-ink-faint">Katalog je ukázkový – škola si ho doplní podle svého ŠVP. U delších období můžete vybrat více celků.</p>
+        <p className="mt-2 text-xs text-ink-faint">Katalog je ukázkový, škola si ho doplní podle svého ŠVP. U delších období můžete vybrat více celků.</p>
       </Card>
 
       <Card title="Vzdělávací cíle">
@@ -307,7 +307,7 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
             </div>
             {sugg.note && <p className="mb-2 text-xs text-ink-faint">{sugg.note}</p>}
             {sugg.items.length === 0 ? (
-              <p className="text-sm text-ink-faint">Zatím není z čeho navrhnout – vyberte tematický celek nebo zadejte téma.</p>
+              <p className="text-sm text-ink-faint">Zatím není z čeho navrhnout, vyberte tematický celek nebo zadejte téma.</p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {sugg.items.map((g) => (

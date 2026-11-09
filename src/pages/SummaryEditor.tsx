@@ -173,7 +173,7 @@ export default function SummaryEditor() {
               <li>Učitel věty zkontroluje, upraví a schválí.</li>
               <li>Vytisknout nebo uložit do PDF jde jen schválená verze.</li>
             </ol>
-            <p className="mt-3 text-xs text-ink-faint">Aplikace nic nedomýšlí – osobní okolnosti žáka do souhrnu patří jen tehdy, když je doplní učitel.</p>
+            <p className="mt-3 text-xs text-ink-faint">Aplikace nic nedomýšlí. Osobní okolnosti žáka do souhrnu patří jen tehdy, když je doplní učitel.</p>
           </Card>
           {!locked && (
             <Card>

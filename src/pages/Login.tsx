@@ -58,7 +58,7 @@ export default function Login({ recovery = false }: { recovery?: boolean }) {
         </Link>
         <form onSubmit={submit} className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-7" noValidate>
           <h1 className="text-[22px] font-bold">{title}</h1>
-          {mode === 'up' && <p className="mt-1 text-sm text-ink-soft">Zatím jen pro vyzkoušení s fiktivními žáky – skutečné údaje žáků sem nezadávejte.</p>}
+          {mode === 'up' && <p className="mt-1 text-sm text-ink-soft">Zatím jen pro vyzkoušení s fiktivními žáky. Skutečné údaje žáků sem nezadávejte.</p>}
           {idleOut && mode === 'in' && (
             <p role="status" className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">
               Byli jste odhlášeni kvůli nečinnosti. Pro pokračování zadejte heslo.
@@ -107,7 +107,7 @@ export default function Login({ recovery = false }: { recovery?: boolean }) {
           )}
         </form>
         <p className="mt-4 text-center text-xs text-ink-faint">
-          Žáci se nepřihlašují – sebehodnocení otevřou kódem od učitele.{' '}
+          Žáci se nepřihlašují, sebehodnocení otevřou kódem od učitele.{' '}
           <button onClick={openPrivacy} className="font-semibold underline-offset-2 hover:underline">Soukromí</button>
         </p>
       </div>

@@ -202,7 +202,7 @@ export default function StepTeacher({ a, setDirty, goTo }: StepProps) {
                     </button>
                   ))}
                 </div>
-                {!g.status && <p className="mt-1 text-xs text-ink-faint">Zatím neoznačeno – ve zprávě se nebude uvádět jako splněné ani nesplněné.</p>}
+                {!g.status && <p className="mt-1 text-xs text-ink-faint">Zatím neoznačeno, ve zprávě se nebude uvádět jako splněné ani nesplněné.</p>}
               </li>
             ))}
           </ul>

@@ -113,10 +113,10 @@ function czech(e: { message: string; name?: string; status?: number }) {
   const m = e.message
   if (e.name === 'AuthRetryableFetchError' || /fetch|network/i.test(m)) return 'Nepodařilo se spojit se serverem. Zkontrolujte připojení.'
   if (m === 'Invalid login credentials') return 'Nesprávný e-mail nebo heslo.'
-  if (/email not confirmed/i.test(m)) return 'E-mail zatím není potvrzený – klikněte na odkaz v e-mailu.'
+  if (/email not confirmed/i.test(m)) return 'E-mail zatím není potvrzený, klikněte na odkaz v e-mailu.'
   if (/already registered/i.test(m)) return 'Účet s tímto e-mailem už existuje.'
   if (/rate limit|too many/i.test(m) || e.status === 429) return 'Příliš mnoho pokusů, zkuste to za chvíli.'
-  if (/password/i.test(m) && /weak|short|least/i.test(m)) return 'Heslo je příliš slabé – použijte aspoň 10 znaků.'
+  if (/password/i.test(m) && /weak|short|least/i.test(m)) return 'Heslo je příliš slabé, použijte aspoň 10 znaků.'
   return m
 }
 

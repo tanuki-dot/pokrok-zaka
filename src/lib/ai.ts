@@ -83,24 +83,24 @@ export interface Suggested<T> {
 
 export async function suggestGoals(d: DB, a: DraftLike): Promise<Suggested<string[]>> {
   const fallback = goalSuggestions(d, a)
-  if (!aiAvailable) return { value: fallback, source: 'sablona', note: 'AI zatím není připojena – návrhy jsou z katalogu ŠVP a předchozích záznamů.' }
+  if (!aiAvailable) return { value: fallback, source: 'sablona', note: 'AI zatím není připojena, návrhy jsou z katalogu ŠVP a předchozích záznamů.' }
   try {
     const r = await call<{ goals: string[] }>('cile', aiContext(d, a))
     return { value: r.goals.filter((g) => typeof g === 'string' && g.trim()).slice(0, 6), source: 'ai' }
   } catch (e) {
-    return { value: fallback, source: 'sablona', note: `AI není dostupná (${(e as Error).message}) – návrhy jsou ze šablon.` }
+    return { value: fallback, source: 'sablona', note: `AI není dostupná (${(e as Error).message}), návrhy jsou ze šablon.` }
   }
 }
 
 export async function suggestReport(d: DB, a: DraftLike, self: SelfAssessment | undefined, length: ReportLength): Promise<Suggested<{ text: string; missing: string[] }>> {
   const fallback = reportText(d, a, self, length)
-  if (!aiAvailable) return { value: fallback, source: 'sablona', note: 'AI zatím není připojena – návrh je vytvořený šablonou z uložených údajů.' }
+  if (!aiAvailable) return { value: fallback, source: 'sablona', note: 'AI zatím není připojena, návrh je vytvořený šablonou z uložených údajů.' }
   try {
     const r = await call<{ text: string; missing: string[] }>('hodnoceni', aiContext(d, a, self), length)
     // Upozornění na chybějící údaje doplní i aplikace sama – nespoléhá jen na AI.
     return { value: { text: r.text, missing: [...new Set([...missingInfo(d, a, self, length), ...(r.missing ?? [])])] }, source: 'ai' }
   } catch (e) {
-    return { value: fallback, source: 'sablona', note: `AI není dostupná (${(e as Error).message}) – návrh je ze šablony.` }
+    return { value: fallback, source: 'sablona', note: `AI není dostupná (${(e as Error).message}), návrh je ze šablony.` }
   }
 }
 

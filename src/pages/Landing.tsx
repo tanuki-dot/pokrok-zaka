@@ -21,7 +21,7 @@ const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ b
 const STEPS = [
   ['Údaje o žákovi a cíl', 'Žák, třída, předmět, hodnocené období (hodina až školní rok), tematický celek ŠVP a vzdělávací cíle.'],
   ['Hodnocení učitele', 'Vybrané dovednosti na škále 1–5 s komentářem, krátký dotazník podle období a splnění každého cíle.'],
-  ['Sebehodnocení žáka', 'Dotazník přes QR kód nebo odkaz – otázky odpovídají období, žák může přiložit svou práci.'],
+  ['Sebehodnocení žáka', 'Dotazník přes QR kód nebo odkaz. Otázky odpovídají období, žák může přiložit svou práci.'],
   ['Formativní hodnocení', 'Zpráva pro žáka a rodiče v krátké, střední nebo dlouhé verzi a individuální rozvoj žáka.'],
   ['Kontrola a historie', 'Učitel zprávu upraví a schválí, pokrok žáka sleduje v historii a grafech.'],
 ]
@@ -29,7 +29,7 @@ const STEPS = [
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Users size={22} />, title: 'Evidence', text: 'Školy, třídy, žáci a předměty. Seznam žáků nahrajete z Excelu.' },
   { icon: <ClipboardCheck size={22} />, title: 'Hodnocení 1–5', text: 'Deset dovedností pro všechny předměty a vlastní dovednosti. 1 = výborně … 5 = zatím nezvládá.' },
-  { icon: <Grid2x2 size={22} />, title: 'Individuální rozvoj žáka', text: 'Co žák zvládá, co potřebuje zlepšit, možnosti rozvoje a překážky v učení – vytvoří se automaticky a učitel je upraví.' },
+  { icon: <Grid2x2 size={22} />, title: 'Individuální rozvoj žáka', text: 'Co žák zvládá, co potřebuje zlepšit, možnosti rozvoje a překážky v učení, vytvoří se automaticky a učitel je upraví.' },
   { icon: <CalendarRange size={22} />, title: 'Týden · Měsíc · Pololetí', text: 'Souhrny a slovní hodnocení se skládají z krátkých záznamů. Učitel je upraví a schválí.' },
   { icon: <QrCode size={22} />, title: 'Sebehodnocení žáka', text: 'Jeden univerzální dotazník pro všechny předměty. Žák odpoví přes QR kód, odpovědi vidíte vedle svého hodnocení.' },
   { icon: <FileDown size={22} />, title: 'Výstupy', text: 'Tisk do PDF, export do Excelu a přehled třídy i celé školy.' },

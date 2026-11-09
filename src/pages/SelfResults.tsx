@@ -108,7 +108,7 @@ export default function SelfResults() {
         }
       />
       <p className="mb-4 rounded-xl border border-warn/30 bg-warn-wash px-4 py-3 text-sm text-warn">
-        <strong>Subjektivní sebehodnocení:</strong> odpovědi ukazují, jak žáci sami vnímají své učení. Nejsou to známky ani objektivní hodnocení – slouží jako podklad pro rozhovor a další cíl.
+        <strong>Subjektivní sebehodnocení:</strong> odpovědi ukazují, jak žáci sami vnímají své učení. Nejsou to známky ani objektivní hodnocení, slouží jako podklad pro rozhovor a další cíl.
       </p>
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">

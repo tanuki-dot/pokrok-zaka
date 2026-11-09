@@ -29,7 +29,7 @@ export default function CriteriaPage() {
       <PageHeader
         icon={<SlidersHorizontal size={28} />}
         title="Dovednosti a věty"
-        subtitle={`Co budete v předmětu ${subj.name.toLowerCase()} hodnotit. Společné dovednosti platí pro všechny předměty – nerelevantní vypněte, vlastní přidejte.`}
+        subtitle={`Co budete v předmětu ${subj.name.toLowerCase()} hodnotit. Společné dovednosti platí pro všechny předměty, nerelevantní vypněte, vlastní přidejte.`}
       />
       <div className="grid gap-4 xl:grid-cols-2">
         <Card title="Společné dovednosti" action={<span className="text-sm text-ink-faint">vypnutím je skryjete jen v tomto předmětu</span>}>

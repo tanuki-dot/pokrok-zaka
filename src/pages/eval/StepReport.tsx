@@ -198,7 +198,7 @@ export default function StepReport({ a, setDirty }: StepProps) {
         <a href={`#/tisk/hodnoceni/${asm.id}`} target="_blank" rel="noreferrer">
           <Button variant="primary"><Printer size={15} /> Tisk / uložit jako PDF</Button>
         </a>
-        {touched && <span className="text-sm text-warn">Neuložené změny – nezapomeňte uložit.</span>}
+        {touched && <span className="text-sm text-warn">Neuložené změny, nezapomeňte uložit.</span>}
       </div>
     </div>
   )

@@ -377,8 +377,8 @@ export function reportText(d: DB, a: DraftLike, self: SelfAssessment | undefined
     let p = parts.join(', ') + '.'
     const band = teacherBand(a.scores['k-znalosti'])
     if (band && c.selfRaw?.answers) {
-      if (c.selfRaw.answers.understanding > band) p += ' Vlastní pohled je o něco příznivější než hodnocení učitele – vyplatí se společně projít, co je potřeba ještě procvičit.'
-      else if (c.selfRaw.answers.understanding < band) p += ' Žák se hodnotí přísněji, než odpovídá hodnocení učitele – zaslouží si povzbuzení, že učivo zvládá lépe, než si myslí.'
+      if (c.selfRaw.answers.understanding > band) p += ' Vlastní pohled je o něco příznivější než hodnocení učitele, vyplatí se společně projít, co je potřeba ještě procvičit.'
+      else if (c.selfRaw.answers.understanding < band) p += ' Žák se hodnotí přísněji, než odpovídá hodnocení učitele, zaslouží si povzbuzení, že učivo zvládá lépe, než si myslí.'
       else p += ' Pohled žáka se shoduje s hodnocením učitele.'
     }
     if (length === 'dlouhe' && c.self.nextWish) p += ` Příště chce: „${noDot(c.self.nextWish)}“.`

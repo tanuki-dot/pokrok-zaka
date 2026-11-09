@@ -60,7 +60,7 @@ export default function PrintAssessment() {
         <Button variant="primary" className="ml-auto" onClick={() => window.print()}><Printer size={16} /> Tisk / uložit jako PDF</Button>
       </div>
       {!a.report?.approved && (
-        <p className="no-print mx-auto mb-4 max-w-[820px] rounded-xl bg-warn-wash px-4 py-2 text-sm text-warn">Formativní hodnocení zatím není schválené – tisk je jen náhled.</p>
+        <p className="no-print mx-auto mb-4 max-w-[820px] rounded-xl bg-warn-wash px-4 py-2 text-sm text-warn">Formativní hodnocení zatím není schválené, tisk je jen náhled.</p>
       )}
       <article className="print-sheet mx-auto max-w-[820px] rounded-2xl border border-line bg-surface px-10 py-10 shadow-sm">
         <header className="border-b-2 border-ink pb-4">
