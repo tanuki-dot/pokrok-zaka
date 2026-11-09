@@ -8,16 +8,24 @@ import type { Criterion, TopicUnit } from './types'
 /** Společné dovednosti pro všechny předměty. „k-znalosti“, „k-samostatnost“ a „k-spoluprace“
  *  zachovávají id ze starších verzí, aby na sebe historie navazovala. */
 export const DEFAULT_CRITERIA: Criterion[] = [
-  { id: 'k-znalosti', subjectId: null, name: 'Porozumění učivu', question: 'Rozumí žák učivu a dokáže ho vysvětlit?' },
-  { id: 'k-reseni', subjectId: null, name: 'Řešení problémů', question: 'Dokáže učivo použít při řešení úloh?' },
   { id: 'k-samostatnost', subjectId: null, name: 'Samostatnost', question: 'Zvládne pracovat bez pomoci?' },
+  { id: 'k-aktivita', subjectId: null, name: 'Aktivita', question: 'Zapojuje se aktivně do výuky?' },
   { id: 'k-spoluprace', subjectId: null, name: 'Spolupráce', question: 'Dokáže pracovat s ostatními?' },
   { id: 'k-komunikace', subjectId: null, name: 'Komunikace', question: 'Srozumitelně vyjadřuje své myšlenky a postupy?' },
-  { id: 'k-organizace', subjectId: null, name: 'Organizace práce', question: 'Plánuje si práci a dokončí ji včas?' },
-  { id: 'k-tvorivost', subjectId: null, name: 'Tvořivost', question: 'Přichází s vlastními nápady a řešeními?' },
+  { id: 'k-znalosti', subjectId: null, name: 'Porozumění učivu', question: 'Rozumí žák učivu a dokáže ho vysvětlit?' },
+  { id: 'k-reseni', subjectId: null, name: 'Řešení problémů', question: 'Dokáže učivo použít při řešení úloh?' },
   { id: 'k-kriticke', subjectId: null, name: 'Kritické myšlení', question: 'Ověřuje informace a posuzuje výsledky?' },
-  { id: 'k-digitalni', subjectId: null, name: 'Digitální kompetence', question: 'Účelně a bezpečně používá digitální technologie?' },
-  { id: 'k-zpetna-vazba', subjectId: null, name: 'Práce se zpětnou vazbou', question: 'Využívá zpětnou vazbu ke zlepšení?' },
+  { id: 'k-tvorivost', subjectId: null, name: 'Tvořivost', question: 'Přichází s vlastními nápady a řešeními?' },
+  { id: 'k-organizace', subjectId: null, name: 'Organizace práce', question: 'Plánuje si práci a dokončí ji včas?' },
+  { id: 'k-zodpovednost', subjectId: null, name: 'Zodpovědnost', question: 'Plní povinnosti a nese odpovědnost za svou práci?' },
+  { id: 'k-chyba', subjectId: null, name: 'Práce s chybou', question: 'Dokáže najít chybu a poučit se z ní?' },
+  { id: 'k-sebereflexe', subjectId: null, name: 'Sebehodnocení', question: 'Ví, co umí a co potřebuje zlepšit?' },
+  { id: 'k-zpetna-vazba', subjectId: null, name: 'Využívání zpětné vazby', question: 'Využívá zpětnou vazbu ke zlepšení?' },
+  { id: 'k-vytrvalost', subjectId: null, name: 'Vytrvalost', question: 'Nevzdává se při obtížích a dotáhne práci do konce?' },
+  { id: 'k-digitalni', subjectId: null, name: 'Digitální dovednosti', question: 'Účelně a bezpečně používá digitální technologie?' },
+  { id: 'k-informace', subjectId: null, name: 'Práce s informacemi', question: 'Vyhledá, posoudí a zpracuje informace?' },
+  { id: 'k-prezentace', subjectId: null, name: 'Prezentace výsledků', question: 'Srozumitelně představí výsledky své práce?' },
+  { id: 'k-pravidla', subjectId: null, name: 'Dodržování pravidel', question: 'Dodržuje dohodnutá pravidla a pokyny?' },
 ]
 
 /** Dovednosti ze starších verzí – zůstávají v historii, pro nová hodnocení se nenabízí. */
