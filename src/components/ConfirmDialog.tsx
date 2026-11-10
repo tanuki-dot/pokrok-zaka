@@ -1,9 +1,13 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from './ui'
 
 /**
  * Potvrzovací dialog – vycentrovaný na střed, s rozmazaným ztmaveným pozadím.
  * Zavře se klávesou Esc nebo kliknutím mimo kartu.
+ * Vykresluje se portálem do document.body, aby ho nemohl překrýt obsah stránky:
+ * sidebar je position:sticky, což vytváří stacking context, a z-index dialogu
+ * by jinak platil jen uvnitř něj (grafy na stránce by dialog překryly).
  */
 export function ConfirmDialog({
   open,
@@ -35,7 +39,7 @@ export function ConfirmDialog({
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
       className="no-print fixed inset-0 z-[60] grid place-items-center bg-black/40 px-4 backdrop-blur-sm"
       onClick={onCancel}
@@ -54,6 +58,7 @@ export function ConfirmDialog({
           <Button variant={tone} autoFocus onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
