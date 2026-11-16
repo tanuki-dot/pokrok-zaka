@@ -7,6 +7,7 @@ import { levelLabel } from '../lib/levels'
 import { describeSelf } from '../lib/questionnaire'
 import { periodLabel } from '../lib/periods'
 import { fileKind, getFile } from '../lib/files'
+import { supportMeasures } from '../lib/documents'
 import { allCriteriaFor, fullName } from '../lib/util'
 import { fmt } from '../lib/dates'
 import { Button, cx } from '../components/ui'
@@ -51,6 +52,7 @@ export default function PrintAssessment() {
   const units = a.units.map((u) => db.units.find((x) => x.id === u)?.name).filter(Boolean) as string[]
   const crits = allCriteriaFor(db, a.subjectId)
   const history = studentAssessments(db, a.studentId, a.subjectId).filter((x) => x.date <= a.date)
+  const support = supportMeasures(db, a.studentId)
 
   return (
     <div className="min-h-full bg-canvas py-8">
@@ -73,6 +75,9 @@ export default function PrintAssessment() {
 
         <section className="mt-5 grid gap-1 text-sm">
           {(units.length > 0 || a.topic) && <div><strong>Tematické celky:</strong> {[...units, a.topic].filter(Boolean).join(' · ')}</div>}
+          {(support.labels.length > 0 || support.noSupport) && (
+            <div><strong>Podpůrná opatření:</strong> {support.noSupport ? 'žák nemá evidovaná podpůrná opatření' : support.labels.join(' · ')}</div>
+          )}
           {a.goals.length > 0 && (
             <div>
               <strong>Vzdělávací cíle:</strong>

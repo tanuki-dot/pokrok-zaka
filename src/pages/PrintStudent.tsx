@@ -5,6 +5,7 @@ import { criterionSeries, GOAL_STATUS_LABEL, studentAssessments, trendWord } fro
 import { levelLabel } from '../lib/levels'
 import { periodLabel } from '../lib/periods'
 import { allCriteriaFor, fullName } from '../lib/util'
+import { supportMeasures } from '../lib/documents'
 import { fmt } from '../lib/dates'
 import { Button } from '../components/ui'
 
@@ -20,6 +21,7 @@ export default function PrintStudent() {
   const as = studentAssessments(db, st.id, subj.id)
   const crits = allCriteriaFor(db, subj.id)
   const withData = crits.filter((c) => criterionSeries(as, c.id).length > 0)
+  const support = supportMeasures(db, st.id)
 
   return (
     <div className="min-h-full bg-canvas py-8">
@@ -33,6 +35,9 @@ export default function PrintStudent() {
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">{school?.name} · Historie hodnocení</div>
           <h1 className="mt-2 text-[26px] font-bold">{fullName(st)}</h1>
           <div className="mt-1 text-[15px] text-ink-soft">Třída {cls?.name} · {subj.name} · {as.length} hodnocení</div>
+          {(support.labels.length > 0 || support.noSupport) && (
+            <div className="mt-1 text-sm"><strong>Podpůrná opatření:</strong> {support.noSupport ? 'žák nemá evidovaná podpůrná opatření' : support.labels.join(' · ')}</div>
+          )}
         </header>
 
         {withData.length > 0 && (
