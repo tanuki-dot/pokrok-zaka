@@ -36,6 +36,8 @@ export interface Student {
   classId: string
   firstName: string
   lastName: string
+  /** Učitel výslovně označil, že žák nemá evidovaná podpůrná opatření (odlišení od „zatím nevyplněno"). */
+  noSupport?: boolean
 }
 
 export interface Subject {
@@ -211,8 +213,10 @@ export interface Attachment {
   goalIds?: string[]
 }
 
-/** Druh dokumentu: podpůrná opatření žáka (plpp…spc), školní ŠVP/plán (svp, plan), jiné. */
-export type DocKind = 'plpp' | 'ivp' | 'ppp' | 'spc' | 'svp' | 'plan' | 'jine'
+/** Druh dokumentu: podpůrná opatření žáka (plpp…upravy), školní ŠVP/plán (svp, plan), jiné.
+ *  Podpůrná opatření žáka: plpp, ivp, ppp, spc, spz (zpráva ŠPZ), podpurna (doporučení
+ *  k podpůrným opatřením), upravy (úprava podmínek vzdělávání a hodnocení). */
+export type DocKind = 'plpp' | 'ivp' | 'ppp' | 'spc' | 'spz' | 'podpurna' | 'upravy' | 'svp' | 'plan' | 'jine'
 
 /** Dokument. Buď podpůrný dokument žáka (scope 'zak', PLPP/IVP/PPP/SPC), nebo školní
  *  dokument (scope 'skola', ŠVP a tematické plány, volitelně vázané na předmět).
@@ -228,6 +232,8 @@ export interface Document {
   mime: string
   size: number
   addedAt: string
+  /** Vlastní název u druhu „Další dokument" (kind = 'jine'). */
+  title?: string
 }
 
 export interface Goal {

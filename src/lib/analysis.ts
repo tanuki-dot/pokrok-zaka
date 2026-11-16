@@ -2,6 +2,7 @@ import type {
   Assessment, Criterion, DB, Level, LessonGoalStatus, ReportLength, SelfAssessment, SummaryKind, SummarySection, SummarySentence, Swot,
 } from './types'
 import { allCriteriaFor, uid } from './util'
+import { supportMeasures } from './documents'
 import { fmt, fmtShort, inRange, weekStart } from './dates'
 import { gainOf, isStrong, isWeak, LEVELS } from './levels'
 import { describeSelf, teacherBand } from './questionnaire'
@@ -284,6 +285,8 @@ export function proposeDevelopment(d: DB, a: DraftLike, self?: SelfAssessment): 
   const o: string[] = []
   const recs = recommendations(d, a, self)
   if (recs.length) o.push(recs.map((r) => `– ${r}`).join('\n'))
+  const sm = supportMeasures(d, a.studentId)
+  if (sm.labels.length) o.push(`Vycházet z evidovaných podpůrných opatření žáka (${list(sm.labels)}) a zapracovat doporučené úpravy podmínek vzdělávání a hodnocení.`)
   if (a.feedback.next) o.push(`Další krok: ${clean(a.feedback.next)}`)
   if (improved.length) o.push(`Navázat na posun v oblasti: ${list(improved.map(([id]) => c.name(id)))}.`)
   if (c.strong.length) o.push(`Prohlubovat dovednosti v náročnějších úlohách (${list(c.strong.slice(0, 2).map(([id]) => c.name(id)))}).`)
@@ -317,6 +320,8 @@ export function missingInfo(d: DB, a: DraftLike, self: SelfAssessment | undefine
     m.push('Chybí slovní komentáře učitele.')
   if (length === 'dlouhe' && !studentAssessments(d, a.studentId, a.subjectId).some((x) => x.id !== a.id && x.date <= a.date))
     m.push('Nejsou předchozí hodnocení pro porovnání.')
+  const sm = supportMeasures(d, a.studentId)
+  if (!sm.labels.length && !sm.noSupport) m.push('Není uvedeno, zda má žák podpůrná opatření (doplňte v 1. kroku).')
   return m
 }
 
@@ -383,6 +388,12 @@ export function reportText(d: DB, a: DraftLike, self: SelfAssessment | undefined
     }
     if (length === 'dlouhe' && c.self.nextWish) p += ` Příště chce: „${noDot(c.self.nextWish)}“.`
     paras.push(p)
+  }
+
+  // Podpůrná opatření – propojení hodnocení učitele a sebehodnocení s dokumentací žáka
+  const sm = supportMeasures(d, a.studentId)
+  if (length !== 'kratke' && sm.labels.length) {
+    paras.push(`Hodnocení zohledňuje evidovaná podpůrná opatření žáka (${list(sm.labels)}). Nároky a doporučení vycházejí z individuálních vzdělávacích potřeb žáka a z úprav podmínek vzdělávání a hodnocení.`)
   }
 
   // Další krok / doporučení

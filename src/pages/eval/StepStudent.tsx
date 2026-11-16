@@ -11,6 +11,7 @@ import { fmt, today } from '../../lib/dates'
 import { uid } from '../../lib/util'
 import type { AssessmentGoal, PeriodType } from '../../lib/types'
 import { Button, Card, cx, Field, Input, Pill, Select } from '../../components/ui'
+import { SupportMeasures } from '../../components/SupportMeasures'
 import type { StepProps } from './Wizard'
 
 const PERIODS: PeriodType[] = ['hodina', 'tyden', 'mesic', 'pololeti', 'rok', 'vlastni']
@@ -183,6 +184,13 @@ export default function StepStudent({ a, setDirty, goTo }: StepProps) {
           )}
         </div>
         {!studentId && <p className="mt-3 rounded-xl bg-warn-wash px-3 py-2 text-sm text-warn">Testovací provoz: zadávejte pouze fiktivní údaje.</p>}
+        {studentId ? (
+          <SupportMeasures studentId={studentId} wrapped={false} />
+        ) : (
+          <div className="mt-4 border-t border-line pt-4 text-sm text-ink-faint">
+            Dokumentaci a podpůrná opatření žáka (PLPP, IVP, doporučení PPP/SPC, zpráva ŠPZ…) přidáte po uložení žáka – vyberte ho pak v poli „Žák".
+          </div>
+        )}
       </Card>
 
       <Card title="Hodnocené období *">

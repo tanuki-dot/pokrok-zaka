@@ -78,7 +78,7 @@ async function schoolDocExcerpts(schoolId: string, subjectId?: string): Promise<
 async function studentDocExcerpts(studentId: string): Promise<string> {
   const { data } = await admin.from('documents').select('id,name,mime,kind,scope,student_id,school_id').eq('scope', 'zak').eq('student_id', studentId).limit(10)
   const text = await excerptsFor((data ?? []) as DocRow[])
-  return text ? `\n\nPodpůrná opatření žáka z dokumentů (PLPP, IVP, doporučení PPP/SPC). Zohledni individuální potřeby a doporučenou podporu, ale neopakuj v textu jména ani diagnózy:${text}` : ''
+  return text ? `\n\nPodpůrná opatření žáka z dokumentů (PLPP, IVP, doporučení PPP/SPC, zpráva ŠPZ, doporučení k podpůrným opatřením a k úpravě podmínek vzdělávání a hodnocení). Zohledni individuální potřeby, doporučenou podporu i úpravy podmínek hodnocení, ale neopakuj v textu jména ani diagnózy:${text}` : ''
 }
 
 const SYSTEM = `Jsi zkušený pedagog a pomáháš učitelům české základní a střední školy s formativním hodnocením žáků.
@@ -91,7 +91,7 @@ Pravidla:
 - Cíl se splněním „neoznačeno“ nikdy nepopisuj jako splněný ani nesplněný.
 - Piš česky, srozumitelně pro žáka i rodiče, pozitivně a pedagogicky vhodně. Žáka neoslovuj jménem, piš genderově neutrálně (např. „zvládá“, „potřebuje“, „žák“).
 - Hodnocení slouží ke zpětné vazbě a podpoře rozvoje, není to známka.
-- Můžeš dostat výňatky ze ŠVP nebo tematických plánů školy – opři o ně návrhy cílů a dovedností. Můžeš dostat podpůrná opatření žáka (PLPP, IVP, doporučení PPP/SPC) – zohledni individuální potřeby a doporučenou podporu, ale neuváděj jména ani diagnózy.
+- Můžeš dostat výňatky ze ŠVP nebo tematických plánů školy – opři o ně návrhy cílů a dovedností. Můžeš dostat podpůrná opatření žáka (PLPP, IVP, doporučení PPP/SPC, zpráva ŠPZ, doporučení k podpůrným opatřením a k úpravě podmínek vzdělávání a hodnocení) – spoj je s hodnocením učitele a sebehodnocením žáka, zohledni individuální potřeby a doporučenou podporu, ale neuváděj jména ani diagnózy. Pole podpurnaOpatreni v kontextu říká, jaké druhy jsou evidované (bezOpatreni = žák žádná nemá).
 - Odpověz výhradně platným JSON podle zadaného schématu, bez jakéhokoli dalšího textu.`
 
 const TASK_PROMPT: Record<string, (length?: string) => string> = {

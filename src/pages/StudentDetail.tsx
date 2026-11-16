@@ -13,7 +13,7 @@ import { SelfHistory } from '../components/SelfHistory'
 import { fmt, fmtShort, KIND_LABEL } from '../lib/dates'
 import type { Assessment, DB, GoalStatus } from '../lib/types'
 import { Button, Card, cx, Empty, LevelBadge, PageHeader, Pill } from '../components/ui'
-import { StudentDocuments } from '../components/StudentDocuments'
+import { SupportMeasures } from '../components/SupportMeasures'
 import { ProgressChart } from '../components/ProgressChart'
 import { TOOLTIP_STYLE } from '../components/chartStyle'
 
@@ -244,7 +244,7 @@ export default function StudentDetail() {
         }
       />
 
-      <div className="mb-4"><StudentDocuments studentId={st.id} /></div>
+      <div className="mb-4"><SupportMeasures studentId={st.id} /></div>
 
       {as.length === 0 ? (
         <Empty title="Zatím žádná hodnocení">V tomto předmětu žák ještě nebyl hodnocen.</Empty>

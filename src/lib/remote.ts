@@ -45,7 +45,7 @@ const f = (...names: string[]) => Object.fromEntries(names.map((n) => [n, n.repl
 export const TABLES: Record<Key, TableSpec> = {
   schools: { table: 'schools', fields: f('id', 'name', 'type') },
   classes: { table: 'classes', fields: f('id', 'schoolId', 'name', 'grade', 'field', 'selfWording') },
-  students: { table: 'students', fields: f('id', 'classId', 'firstName', 'lastName') },
+  students: { table: 'students', fields: f('id', 'classId', 'firstName', 'lastName', 'noSupport') },
   subjects: { table: 'subjects', fields: f('id', 'classId', 'name', 'hiddenDefaults') },
   criteria: { table: 'criteria', fields: f('id', 'subjectId', 'name', 'question', 'archived'), writable: (x) => x.subjectId != null },
   units: { table: 'topic_units', fields: { ...f('id', 'subjectName', 'grades', 'schoolType', 'name', 'goals', 'custom') }, writable: (x) => !!x.custom },
@@ -55,7 +55,7 @@ export const TABLES: Record<Key, TableSpec> = {
   },
   selfAssessments: { table: 'self_assessments', fields: f('id', 'assessmentId', 'answers', 'form', 'submittedAt', 'corrections') },
   attachments: { table: 'attachments', fields: f('id', 'assessmentId', 'owner', 'name', 'type', 'size', 'addedAt', 'note', 'goalIds') },
-  documents: { table: 'documents', fields: f('id', 'scope', 'studentId', 'schoolId', 'subjectId', 'kind', 'name', 'mime', 'size', 'addedAt') },
+  documents: { table: 'documents', fields: f('id', 'scope', 'studentId', 'schoolId', 'subjectId', 'kind', 'name', 'mime', 'size', 'addedAt', 'title') },
   goals: { table: 'goals', fields: f('id', 'studentId', 'subjectId', 'assessmentId', 'text', 'setOn', 'due', 'status') },
   summaries: {
     table: 'summaries',

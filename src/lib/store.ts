@@ -418,11 +418,22 @@ export async function removeAttachment(id: string) {
 
 // ─── Podpůrné dokumenty žáka (PLPP, IVP, PPP, SPC …) ─────────────────────────
 
-export async function addDocument(studentId: string, kind: DocKind, file: File): Promise<Document> {
-  const doc: Document = { id: uid('doc'), scope: 'zak', studentId, schoolId: null, subjectId: null, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now() }
+export async function addDocument(studentId: string, kind: DocKind, file: File, title?: string): Promise<Document> {
+  const doc: Document = { id: uid('doc'), scope: 'zak', studentId, schoolId: null, subjectId: null, kind, name: file.name, mime: file.type || 'application/octet-stream', size: file.size, addedAt: now(), ...(title?.trim() ? { title: title.trim() } : {}) }
   await putDoc(doc, file)
-  commit({ ...db, documents: [...db.documents, doc], audit: audit(db, 'vytvořeno', 'dokument žáka', `${studentName(db, studentId)} · ${doc.name}`) })
+  // Nahraný dokument ruší dřívější označení „žák nemá podpůrná opatření".
+  commit({
+    ...db,
+    documents: [...db.documents, doc],
+    students: db.students.map((s) => (s.id === studentId && s.noSupport ? { ...s, noSupport: false } : s)),
+    audit: audit(db, 'vytvořeno', 'dokument žáka', `${studentName(db, studentId)} · ${doc.name}`),
+  })
   return doc
+}
+
+/** Učitel označí/odznačí, že žák nemá evidovaná podpůrná opatření (zadání: volba v rozbalovacím poli). */
+export function setStudentNoSupport(studentId: string, value: boolean) {
+  commit({ ...db, students: db.students.map((s) => (s.id === studentId ? { ...s, noSupport: value } : s)) })
 }
 
 export async function addSchoolDocument(schoolId: string, subjectId: string | null, kind: DocKind, file: File): Promise<Document> {

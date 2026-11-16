@@ -4,6 +4,7 @@ import { LEVELS } from './levels'
 import { describeSelf } from './questionnaire'
 import { periodLabel, teacherQuestions } from './periods'
 import { fileKind } from './files'
+import { supportMeasures } from './documents'
 import { accessToken, remoteEnabled, SUPABASE_URL } from './remote'
 import { goalSuggestions, missingInfo, proposeDevelopment, reportText, studentAssessments, type DraftLike } from './analysis'
 
@@ -71,6 +72,9 @@ export function aiContext(d: DB, a: DraftLike, self?: SelfAssessment) {
       cile: x.goals.map((g) => ({ cil: g.text, splneni: g.status ?? 'neoznačeno' })),
     })),
     dolozenePrace: d.attachments.filter((x) => x.assessmentId === a.id).map((x) => ({ druh: fileKind(x.type, x.name), od: x.owner === 'zak' ? 'žák' : 'učitel' })),
+    // Propojení s podpůrnými opatřeními: druhy evidovaných opatření (obsah dokumentů
+    // si funkce ai-navrh dotáhne podle _ids.studentId). bezOpatreni = učitel potvrdil, že žák žádná nemá.
+    podpurnaOpatreni: (() => { const sm = supportMeasures(d, a.studentId); return { bezOpatreni: sm.noSupport, druhy: sm.labels } })(),
     // Jen pro server: podle těchto id si funkce ai-navrh dotáhne a extrahuje nahrané
     // dokumenty (ŠVP/plány školy, podpůrná opatření žáka). Z kontextu se před odesláním do AI odstraní.
     _ids: { schoolId: school?.id ?? null, subjectId: subj?.id ?? null, studentId: a.studentId ?? null },

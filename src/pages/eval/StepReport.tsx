@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Check, Copy, Loader2, Printer, RefreshCw, RotateCcw, Wand2 } from 'lucide-react'
 import { saveReport, useDB } from '../../lib/store'
 import { GOAL_STATUS_LABEL, NO_OBSTACLES } from '../../lib/analysis'
+import { supportMeasures } from '../../lib/documents'
 import { aiAvailable, suggestDevelopment, suggestReport } from '../../lib/ai'
 import { describeSelf } from '../../lib/questionnaire'
 import { periodLabel } from '../../lib/periods'
@@ -58,6 +59,7 @@ export default function StepReport({ a, setDirty }: StepProps) {
 
   const units = asm.units.map((id) => db.units.find((u) => u.id === id)?.name).filter(Boolean) as string[]
   const attachments = db.attachments.filter((x) => x.assessmentId === asm.id)
+  const support = supportMeasures(db, asm.studentId)
 
   async function createText(length: ReportLength) {
     setBusy('text')
@@ -126,6 +128,16 @@ export default function StepReport({ a, setDirty }: StepProps) {
           </dd>
           <dt className="text-ink-faint">Pohled žáka</dt>
           <dd>{self?.answers ? `${describeSelf(self).understanding} Cíle: ${describeSelf(self).goalMet.toLowerCase()}. (vlastní pohled žáka)` : self ? 'Starší podoba sebehodnocení.' : 'Sebehodnocení zatím chybí.'}</dd>
+          <dt className="text-ink-faint">Podpůrná opatření</dt>
+          <dd>
+            {support.noSupport ? (
+              'Žák nemá evidovaná podpůrná opatření.'
+            ) : support.labels.length ? (
+              <span className="flex flex-wrap gap-1">{support.labels.map((l) => <Pill key={l} tone="sea">{l}</Pill>)}</span>
+            ) : (
+              <span className="text-ink-faint">Neuvedeno – doplňte v 1. kroku „Údaje o žákovi".</span>
+            )}
+          </dd>
         </dl>
       </Card>
 
@@ -152,7 +164,7 @@ export default function StepReport({ a, setDirty }: StepProps) {
           <Button variant="ghost" onClick={() => persist(false)} disabled={!!busy}>Uložit bez schválení</Button>
         </div>
         <p className="mb-2 text-xs text-ink-faint">
-          Návrh: {rep.source === 'ai' ? 'AI' : 'šablona z uložených údajů'}{!aiAvailable && ' · AI zatím není připojena (připraveno pro server)'}. Vychází z hodnocení učitele, komentářů, sebehodnocení, cílů, předchozích hodnocení a doložených prací.
+          Návrh: {rep.source === 'ai' ? 'AI' : 'šablona z uložených údajů'}{!aiAvailable && ' · AI zatím není připojena (připraveno pro server)'}. Spojuje hodnocení učitele, sebehodnocení žáka a evidovaná podpůrná opatření; vychází i z komentářů, cílů, předchozích hodnocení a doložených prací.
         </p>
         {note && <p className="mb-2 text-xs text-ink-faint">{note}</p>}
         {rep.missing.length > 0 && (
