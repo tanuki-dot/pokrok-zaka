@@ -142,11 +142,11 @@ Deno.serve(async (req) => {
   const user = userData?.user
   if (!user) return json({ error: 'Pro návrhy AI se přihlaste.' }, 401)
 
-  // Denní limit požadavků na učitele.
-  const today = new Date().toISOString().slice(0, 10)
-  const { data: usage } = await admin.from('ai_usage').select('calls').eq('teacher_id', user.id).eq('day', today).maybeSingle()
-  if ((usage?.calls ?? 0) >= DAILY_LIMIT) return json({ error: `Denní limit ${DAILY_LIMIT} návrhů AI je vyčerpaný.` }, 429)
-  await admin.from('ai_usage').upsert({ teacher_id: user.id, day: today, calls: (usage?.calls ?? 0) + 1 })
+  // Denní limit požadavků na učitele – atomický inkrement (čti-pak-zapiš by při souběhu
+  // ztrácel zápisy a pustil přes limit). Vrací nový počet za dnešek.
+  const { data: calls, error: bumpErr } = await admin.rpc('ai_usage_bump', { p_teacher: user.id })
+  if (bumpErr) return json({ error: 'Nepodařilo se ověřit denní limit.' }, 500)
+  if ((calls ?? 0) > DAILY_LIMIT) return json({ error: `Denní limit ${DAILY_LIMIT} návrhů AI je vyčerpaný.` }, 429)
 
   let body: { task?: string; length?: string; context?: unknown }
   try {
