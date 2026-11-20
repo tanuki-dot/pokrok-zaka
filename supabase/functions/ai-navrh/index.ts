@@ -13,9 +13,10 @@
 // omezený na den. Klíč k API zůstává jen na serveru. Aplikace posílá pseudonymizovaný
 // kontext bez jména a třídy žáka (src/lib/ai.ts).
 
-import { createClient } from 'npm:@supabase/supabase-js@2.118.0'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0'
 
 const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite'
 const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT') ?? '60')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -54,11 +55,11 @@ async function extractText(bytes: Uint8Array, name: string, mime: string): Promi
 
 type DocRow = { id: string; name: string; mime: string; kind: string; scope: string; student_id: string | null; school_id: string | null }
 
-async function excerptsFor(rows: DocRow[]): Promise<string> {
+async function excerptsFor(db: SupabaseClient, rows: DocRow[]): Promise<string> {
   let out = ''
   for (const d of rows) {
     const path = d.scope === 'skola' ? `skola/${d.school_id}/${d.id}` : `${d.student_id}/${d.id}`
-    const { data: blob } = await admin.storage.from('dokumenty').download(path)
+    const { data: blob } = await db.storage.from('dokumenty').download(path)
     if (!blob) continue
     const text = (await extractText(new Uint8Array(await blob.arrayBuffer()), d.name, d.mime)).replace(/\s+/g, ' ').trim()
     if (text) out += `\n\n[${d.name}]\n${text.slice(0, 6000)}`
@@ -67,17 +68,17 @@ async function excerptsFor(rows: DocRow[]): Promise<string> {
   return out.slice(0, 14000)
 }
 
-async function schoolDocExcerpts(schoolId: string, subjectId?: string): Promise<string> {
-  let q = admin.from('documents').select('id,name,mime,kind,scope,student_id,school_id').eq('scope', 'skola').eq('school_id', schoolId).limit(10)
+async function schoolDocExcerpts(db: SupabaseClient, schoolId: string, subjectId?: string): Promise<string> {
+  let q = db.from('documents').select('id,name,mime,kind,scope,student_id,school_id').eq('scope', 'skola').eq('school_id', schoolId).limit(10)
   if (subjectId) q = q.eq('subject_id', subjectId)
   const { data } = await q
-  const text = await excerptsFor((data ?? []) as DocRow[])
+  const text = await excerptsFor(db, (data ?? []) as DocRow[])
   return text ? `\n\nVýňatky ze ŠVP a tematických plánů školy (ber je jako oporu pro návrh cílů a dovedností):${text}` : ''
 }
 
-async function studentDocExcerpts(studentId: string): Promise<string> {
-  const { data } = await admin.from('documents').select('id,name,mime,kind,scope,student_id,school_id').eq('scope', 'zak').eq('student_id', studentId).limit(10)
-  const text = await excerptsFor((data ?? []) as DocRow[])
+async function studentDocExcerpts(db: SupabaseClient, studentId: string): Promise<string> {
+  const { data } = await db.from('documents').select('id,name,mime,kind,scope,student_id,school_id').eq('scope', 'zak').eq('student_id', studentId).limit(10)
+  const text = await excerptsFor(db, (data ?? []) as DocRow[])
   return text ? `\n\nPodpůrná opatření žáka z dokumentů (PLPP, IVP, doporučení PPP/SPC, zpráva ŠPZ, doporučení k podpůrným opatřením a k úpravě podmínek vzdělávání a hodnocení). Zohledni individuální potřeby, doporučenou podporu i úpravy podmínek hodnocení, ale neopakuj v textu jména ani diagnózy:${text}` : ''
 }
 
@@ -162,10 +163,13 @@ Deno.serve(async (req) => {
   if (context.length > 60_000) return json({ error: 'Kontext je příliš velký.' }, 413)
 
   // Výňatky z nahraných dokumentů (nepovinné – když nejsou nebo nejdou přečíst, pokračuje se bez nich).
+  // Čteme je klientem s tokenem učitele, takže platí RLS (jen vlastní žáci / spravovaná škola);
+  // service-role admin na dokumenty nepoužíváme, obešel by kontrolu vlastnictví.
+  const userDb = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
   let docSection = ''
   try {
-    if (task === 'cile' && ids.schoolId) docSection = await schoolDocExcerpts(ids.schoolId, ids.subjectId ?? undefined)
-    else if ((task === 'hodnoceni' || task === 'rozvoj') && ids.studentId) docSection = await studentDocExcerpts(ids.studentId)
+    if (task === 'cile' && ids.schoolId) docSection = await schoolDocExcerpts(userDb, ids.schoolId, ids.subjectId ?? undefined)
+    else if ((task === 'hodnoceni' || task === 'rozvoj') && ids.studentId) docSection = await studentDocExcerpts(userDb, ids.studentId)
   } catch (_e) {
     docSection = ''
   }
