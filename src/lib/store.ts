@@ -472,7 +472,8 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 /** Jak dlouho platí odkaz pro žáka. */
 export const SELF_CODE_HOURS = 24
 
-const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('')
+// 8 znaků z 32 → prostor 32^8 ≈ 1e12; brute-force přes anon dotaz je tak nereálný i bez rate-limitu.
+const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('')
 
 /**
  * Vydá kód pro sebehodnocení (platí SELF_CODE_HOURS hodin, jednorázový).

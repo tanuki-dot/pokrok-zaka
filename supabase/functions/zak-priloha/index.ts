@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
   }
   const code = String(form.get('code') ?? '').toUpperCase().trim()
   const file = form.get('file')
-  if (!/^[A-Z2-9]{6}$/.test(code) || !(file instanceof File)) return json({ error: 'Chybí kód nebo soubor.' }, 400)
+  // 8 znaků (6 přechodně, než doběhnou staré kódy ≤24 h). Jen formát; platnost ověří lookup níž.
+  if (!/^[A-Z2-9]{6,8}$/.test(code) || !(file instanceof File)) return json({ error: 'Chybí kód nebo soubor.' }, 400)
   if (file.size > MAX_BYTES) return json({ error: 'Soubor je větší než 10 MB.' }, 413)
   if (!ALLOWED.test(file.type)) return json({ error: 'Tento typ souboru nejde přiložit.' }, 415)
 
