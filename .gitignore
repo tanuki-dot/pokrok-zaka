@@ -6,3 +6,6 @@ dist
 *.tsbuildinfo
 supabase/.temp
 supabase/.branches
+
+# MCP config – obsahuje Obsidian API klíč, necommitovat
+.mcp.json
